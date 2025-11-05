@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-family-sans: 'Nunito', sans-serif;
+
+  --color-paper-bg: #f4f3ef;
+  --color-paper-text: #66615b;
+  --color-paper-sidebar: #424242;
+  --color-paper-active-link: #5a5a5a; /* Light Gray for active link */
+
+  --color-paper-primary: #f96332; /* Orange */
+  --color-paper-primary-hover: #ea5823; /* Darker Orange */
+  --color-paper-disabled: #E0E0E0; /* Light Gray */
+
+  --shadow-paper: 0 2px 2px 0 rgba(204, 197, 185, 0.5);
+}
