@@ -39,7 +39,7 @@
     </div>
 
     <!-- Form Example -->
-    <Card>
+    <Card class="mb-6">
       <template #header>
         <h2 class="text-xl font-semibold">Exemplo de Formulário com Validação</h2>
       </template>
@@ -73,6 +73,19 @@
         </div>
       </Form>
     </Card>
+
+    <!-- Toast Notifications Example -->
+    <Card>
+      <template #header>
+        <h2 class="text-xl font-semibold">Exemplo de Notificações (Toast)</h2>
+      </template>
+      <div class="flex flex-wrap gap-4">
+        <Button @click="showSuccessToast">Sucesso</Button>
+        <Button @click="showErrorToast" variant="danger">Erro</Button>
+        <Button @click="showInfoToast" variant="info">Informação</Button>
+        <Button @click="showWarningToast" variant="warning">Aviso</Button>
+      </div>
+    </Card>
   </div>
 </template>
 
@@ -80,9 +93,12 @@
 import { Form, Field, ErrorMessage } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
+import { useToast } from 'vue-toastification';
 import Card from '../components/Card.vue';
 import Button from '../components/Button.vue';
 import api from '../services/api';
+
+const toast = useToast();
 
 const validationSchema = toTypedSchema(
   z.object({
@@ -93,8 +109,23 @@ const validationSchema = toTypedSchema(
 );
 
 function onSubmit(values: any) {
-  alert(JSON.stringify(values, null, 2));
+  toast.success('Formulário enviado com sucesso!');
+  console.log(JSON.stringify(values, null, 2));
 }
 
+function showSuccessToast() {
+  toast.success('Esta é uma notificação de sucesso!');
+}
 
+function showErrorToast() {
+  toast.error('Esta é uma notificação de erro!');
+}
+
+function showInfoToast() {
+  toast.info('Esta é uma notificação de informação.');
+}
+
+function showWarningToast() {
+  toast.warning('Esta é uma notificação de aviso.');
+}
 </script>
