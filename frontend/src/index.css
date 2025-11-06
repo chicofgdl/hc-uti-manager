@@ -8,8 +8,30 @@
   --color-paper-sidebar: #424242;
   --color-paper-active-link: #5a5a5a; /* Light Gray for active link */
 
-  --color-paper-primary: #f96332; /* Orange */
-  --color-paper-primary-hover: #ea5823; /* Darker Orange */
+  /* Default */
+  --color-paper-default: #66615b;
+  --color-paper-default-hover: #55504a;
+
+  /* Primary */
+  --color-paper-primary: #7a9e9f;
+  --color-paper-primary-hover: #6a8d8e;
+
+  /* Info */
+  --color-paper-info: #68b3c8;
+  --color-paper-info-hover: #58a2b7;
+
+  /* Success */
+  --color-paper-success: #7ac29a;
+  --color-paper-success-hover: #6ab189;
+
+  /* Warning */
+  --color-paper-warning: #f3bb45;
+  --color-paper-warning-hover: #e2ac34;
+
+  /* Danger */
+  --color-paper-danger: #eb5e28;
+  --color-paper-danger-hover: #d95524;
+
   --color-paper-disabled: #E0E0E0; /* Light Gray */
 
   --shadow-paper: 0 2px 2px 0 rgba(204, 197, 185, 0.5);

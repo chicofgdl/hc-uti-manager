@@ -35,7 +35,7 @@
         <p class="text-sm text-gray-600 mb-4">Digite um código de paciente e clique em buscar.</p>
         <div class="flex items-center space-x-2">
           <input v-model="pacienteCodigoInput" type="number" placeholder="Digite o código do paciente" class="shadow-inner appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
-          <Button @click="fetchPacientePorCodigo" :disabled="loadingPaciente" class="bg-purple-500 hover:bg-purple-600 text-white whitespace-nowrap">
+          <Button @click="fetchPacientePorCodigo" :disabled="loadingPaciente" variant="success" class="whitespace-nowrap">
             <span v-if="loadingPaciente">Buscando...</span>
             <span v-else>Buscar por Código</span>
           </Button>
