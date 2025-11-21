@@ -76,10 +76,10 @@ import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   HomeIcon,
-  UserGroupIcon,
+  // UserGroupIcon,
   BeakerIcon,
   UsersIcon,
-  ChartBarIcon,
+  // ChartBarIcon,
   ShieldCheckIcon,
   CubeTransparentIcon,
   Bars3Icon,
@@ -94,9 +94,9 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
-const handleLogout = async () => {
-  await authStore.logout(router);
-};
+// const handleLogout = async () => {
+//   await authStore.logout(router);
+// };
 
 // Close sidebar on route change
 watch(() => route.path, () => {
