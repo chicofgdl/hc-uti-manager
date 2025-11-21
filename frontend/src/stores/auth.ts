@@ -2,9 +2,17 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '../services/api';
 
+// Tipagem correta para suportar tanto MockAuth quanto Active Directory
 interface User {
   username: string;
   groups: string[];
+
+  // Campos opcionais vindos do AD
+  givenName?: string[];
+  userPrincipalName?: string[];
+  title?: string[];
+  department?: string[];
+  employeeNumber?: string[];
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -42,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
       setUser(data);
     } catch (error) {
       console.error("Failed to fetch user info:", error);
-      clearToken(); // Clear token if user info fetch fails
+      clearToken();
     }
   }
 
@@ -58,7 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     setToken(data.access_token);
-    await fetchUser(); // Fetch user info immediately after login
+    await fetchUser();
   }
 
   async function logout(router?: any) {
@@ -76,18 +84,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function initializeAuth() {
     if (accessToken.value) {
-      // If a token exists in localStorage, validate it by fetching user info
       await fetchUser();
     } else {
-      // If no token, try to get a new one using the refresh token cookie
       try {
         const { data } = await api.post('/api/token/refresh');
         if (data.access_token) {
           setToken(data.access_token);
-          await fetchUser(); // Fetch user info with the new token
+          await fetchUser();
         }
-      } catch (error) {
-        // It's okay if this fails - it just means the user doesn't have a valid refresh token
+      } catch {
         console.log("No valid refresh token found.");
       }
     }
