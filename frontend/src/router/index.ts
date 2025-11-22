@@ -8,6 +8,7 @@ import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
 import Solicitacoes from '../views/Solicitacoes.vue';
 import Altas from '../views/Altas.vue';
+import Alertas from '../views/Alertas.vue';
 
 const routes = [
   {
@@ -51,6 +52,12 @@ const routes = [
     name: 'Altas',
     component: Altas,
     meta: { title: 'Solicitacoes de Alta' },
+  },
+  {
+    path: '/alertas',
+    name: 'Alertas',
+    component: Alertas,
+    meta: { title: 'Alertas do Sistema' },
   },
 ];
 
