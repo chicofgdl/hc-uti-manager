@@ -43,6 +43,9 @@
                 class="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-800 shadow-inner transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 :disabled="loading"
               />
+              <p v-if="fieldErrors.username" class="text-sm text-red-600">
+                {{ fieldErrors.username }}
+              </p>
             </div>
 
             <div class="space-y-2">
@@ -66,6 +69,9 @@
                   <component :is="passwordFieldType === 'password' ? EyeIcon : EyeSlashIcon" class="h-5 w-5" />
                 </button>
               </div>
+              <p v-if="fieldErrors.password" class="text-sm text-red-600">
+                {{ fieldErrors.password }}
+              </p>
             </div>
 
             <div class="flex items-center justify-between">
@@ -125,12 +131,14 @@ import { useAuthStore } from '../stores/auth';
 import Button from '../components/Button.vue';
 import { EyeIcon, EyeSlashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import { useToast } from 'vue-toastification';
+import { z } from 'zod';
 
 const username = ref('');
 const password = ref('');
 const rememberMe = ref(false);
 const error = ref('');
 const loading = ref(false);
+const fieldErrors = ref<{ username?: string; password?: string }>({});
 const passwordVisible = ref(false);
 const primaryButtonStyle = computed(() => ({
   backgroundColor: '#2563eb',
@@ -144,6 +152,13 @@ const authStore = useAuthStore();
 
 const passwordFieldType = computed(() => passwordVisible.value ? 'text' : 'password');
 
+const loginSchema = z.object({
+  username: z.string().trim()
+    .min(3, 'Informe um usuario valido (minimo de 3 caracteres)')
+    .regex(/^\S+$/, 'Usuario nao deve conter espacos'),
+  password: z.string().min(4, 'Senha deve ter pelo menos 4 caracteres'),
+});
+
 const togglePasswordVisibility = () => {
   passwordVisible.value = !passwordVisible.value;
 };
@@ -153,13 +168,30 @@ const clearForm = () => {
   password.value = '';
   rememberMe.value = false;
   error.value = '';
+  fieldErrors.value = {};
 };
 
 const handleLogin = async () => {
-  loading.value = true;
   error.value = '';
+  fieldErrors.value = {};
+
+  const parsed = loginSchema.safeParse({
+    username: username.value,
+    password: password.value,
+  });
+
+  if (!parsed.success) {
+    parsed.error.errors.forEach((err) => {
+      const field = err.path[0] as 'username' | 'password';
+      fieldErrors.value[field] = err.message;
+    });
+    error.value = 'Revise os dados do formulario antes de continuar.';
+    return;
+  }
+
+  loading.value = true;
   try {
-    await authStore.login(username.value, password.value, rememberMe.value);
+    await authStore.login(parsed.data.username, parsed.data.password, rememberMe.value);
     toast.success('Login realizado com sucesso!');
     const redirectPath = (route.query.redirect as string) || '/';
     await router.push(redirectPath);

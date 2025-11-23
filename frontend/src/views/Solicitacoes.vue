@@ -133,7 +133,7 @@ const solicitacoes: Solicitacao[] = [
 ];
 
 const statusClass: Record<SolicitacaoStatus, string> = {
-  Pendente: 'border-rose-200 bg-rose-500/80 text-rose-800',
-  Reservado: 'border-emerald-200 bg-emerald-500/80 text-emerald-800',
+  Pendente: 'border-rose-300 bg-rose-500/80 text-rose-100',
+  Reservado: 'border-emerald-300 bg-emerald-500/80 text-emerald-100',
 };
 </script>

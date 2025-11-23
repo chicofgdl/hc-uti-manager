@@ -40,11 +40,8 @@
           <component :is="item.icon" class="h-5 w-5" />
           <span v-if="!collapsed">{{ item.label }}</span>
         </span>
-        <span
-          v-if="!collapsed"
-          class="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-500"
-        >
-          <LockClosedIcon class="h-4 w-4" />
+        <span v-if="!collapsed" class="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-500">
+          <Lock class="h-4 w-4" />
           Em breve
         </span>
       </div>
@@ -55,14 +52,14 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import {
-  Squares2X2Icon,
-  InboxStackIcon,
-  ArrowTrendingUpIcon,
-  BellAlertIcon,
-  ChartBarSquareIcon,
-  ClockIcon,
-  LockClosedIcon,
-} from '@heroicons/vue/24/outline';
+  Bed,
+  FileText,
+  LogOut,
+  AlertCircle,
+  BarChart3,
+  History,
+  Lock,
+} from 'lucide-vue-next';
 
 defineProps<{
   collapsed: boolean;
@@ -79,32 +76,32 @@ const activeItems = [
   {
     label: 'Leitos',
     to: '/',
-    icon: Squares2X2Icon,
+    icon: Bed,
   },
   {
     label: 'Solicitações de leito',
     to: '/solicitacoes',
-    icon: InboxStackIcon,
+    icon: FileText,
   },
   {
     label: 'Solicitações de alta',
     to: '/altas',
-    icon: ArrowTrendingUpIcon,
+    icon: LogOut,
   },
   {
     label: 'Alertas',
     to: '/alertas',
-    icon: BellAlertIcon,
+    icon: AlertCircle,
   },
   {
     label: 'Indicadores',
     to: '/indicadores',
-    icon: ChartBarSquareIcon,
+    icon: BarChart3,
   },
   {
     label: 'Historico',
     to: '/historico',
-    icon: ClockIcon,
+    icon: History,
   },
 ];
 

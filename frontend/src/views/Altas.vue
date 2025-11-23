@@ -116,7 +116,7 @@ const altas: Alta[] = [
 ];
 
 const badgeClasses = {
-  pendente: 'border-amber-200 bg-amber-100 text-amber-800',
-  definido: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+  pendente: 'border-amber-300 bg-amber-500/70 text-amber-800',
+  definido: 'border-emerald-300 bg-emerald-500/80 text-emerald-100',
 };
 </script>

@@ -129,12 +129,12 @@ const tipoConfig: Record<
     label: string;
   }
 > = {
-  alta: { color: 'border border-fuchsia-200 bg-fuchsia-100 text-fuchsia-800', label: 'Alta' },
-  reserva: { color: 'border border-emerald-200 bg-emerald-100 text-emerald-800', label: 'Reserva' },
-  destino: { color: 'border border-blue-200 bg-blue-100 text-blue-800', label: 'Destino' },
-  cancelamento: { color: 'border border-red-200 bg-red-100 text-red-800', label: 'Cancelamento' },
-  solicitacao: { color: 'border border-amber-200 bg-amber-100 text-amber-800', label: 'Solicitacao' },
-  status: { color: 'border border-slate-200 bg-slate-100 text-slate-700', label: 'Status' },
+  alta: { color: 'border border-rose-300 bg-rose-500/80 text-rose-100', label: 'Alta' },
+  reserva: { color: 'border border-emerald-300 bg-emerald-500/80 text-emerald-100', label: 'Reserva' },
+  destino: { color: 'border border-blue-300 bg-blue-500/80 text-blue-100', label: 'Destino' },
+  cancelamento: { color: 'border border-red-300 bg-red-500/80 text-red-100', label: 'Cancelamento' },
+  solicitacao: { color: 'border border-amber-300 bg-amber-500/80 text-amber-800', label: 'Solicitacao' },
+  status: { color: 'border border-slate-300 bg-slate-500/80 text-slate-100', label: 'Status' },
 };
 
 const busca = ref('');

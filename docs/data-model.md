@@ -1,17 +1,6 @@
-# Data model and entities (frontend)
+# Modelo dos Dados e Entidades (frontend)
 
-Última atualização: 22 Nov 2025
-
-Sources reviewed:
-- frontend/src/views/Home.vue (leitos + resumo)
-- frontend/src/views/Solicitacoes.vue (solicitacao de vaga)
-- frontend/src/views/Altas.vue (alta e destino)
-- frontend/src/views/Alertas.vue (alerta do sistema)
-- frontend/src/views/Pacientes.vue (lista e detalhe de paciente)
-- frontend/src/views/Historico.vue (log de acoes)
-- frontend/src/views/Indicadores.vue (indicadores operacionais)
-- frontend/src/views/Login.vue, frontend/src/stores/auth.ts, frontend/src/services/api.ts (usuario/autenticacao)
-- frontend/src/components/BedCard.vue, StatusBadge.vue (modelos de leito)
+Última atualização: 22 Jan 2026
 
 ## API endpoints atualmente chamados
 - `POST /api/login` (body form: username, password, remember_me) -> `{ access_token }`
@@ -37,6 +26,20 @@ Campos atualmente usados:
 | especialidade | string | Home.vue, Solicitacoes.vue | especialidade do atendimento atual |
 Sugestoes de campos uteis: contato_responsavel, alergias, risco_clinico/score, plano_de_saude, diagnostico_principal, data_admissao, data_alta_prevista, isolamento (boolean/motivo), origem_atendimento (PS, centro cirurgico etc.).
 
+### Mock de pacientes (CSV)
+- Arquivo: `data/pacientes.csv` (usado pelo `PacienteCsvProvider` quando `PACIENTE_PROVIDER_TYPE=CSV`).
+- Colunas atuais do mock:
+  - `codigo` (int) — chave principal, tratada como prontuario.
+  - `prontuario` (string) — repetido para compatibilidade com UI.
+  - `nome` (string)
+  - `dt_nascimento` (YYYY-MM-DD) e `idade` (inteiro, derivado para facilitar o front)
+  - `nome_mae`, `nome_pai` (string, pai opcional)
+  - `sexo` (M/F), `cor` (Branca/Parda/Preta/Amarela/Indigena)
+  - `especialidade_atual`, `diagnostico_principal`
+  - `data_admissao`, `data_alta_prevista` (YYYY-MM-DD)
+  - `origem_atendimento` (PS, cirurgico, transferido etc.)
+- O CSV contem 20 pacientes diversos para testes de lista e detalhe.
+
 ## Leito
 Campos atualmente usados:
 | Campo | Tipo | Fonte | Observacoes |
@@ -50,6 +53,19 @@ Campos atualmente usados:
 | sinalizacaoTransferencia | boolean? | Home.vue, BedCard.vue | destaca leito com alerta |
 | overviewCards | numbers | Home.vue | agregados: taxa ocupacao, leitos disponiveis, em uso, higienizacao, desativados, reservas pendentes |
 Sugestoes de campos uteis: unidade/setor/ala, classificacao (ex: isolamento, box, coorte), equipamentos_disponiveis (respirador, monitor, bomba), tempo_desde_ultima_limpeza, previsao_liberacao, ocupacao_iniciada_em, bloqueado_motivo, responsavel_enfermagem, tags (uti fechado, covid etc.).
+
+### Mock de leitos (CSV)
+- Arquivo: `data/leitos.csv` (novo mock para simular cards de leitos).
+- Colunas:
+  - `leito_numero` (string) — identificador
+  - `status` (disponivel, ocupado, higienizacao, desativado, alta)
+  - `tipo` (cirurgico, hem, obstetrico, outro, nao_definido)
+  - `paciente_prontuario`, `paciente_idade`, `paciente_especialidade` — dados do ocupante atual (vazios se disponivel)
+  - `proximo_prontuario`, `proximo_especialidade` — fila/reserva opcional
+  - `tipo_reserva` — motivo da reserva quando aplicavel
+  - `sinalizacao_transferencia` — true/false para destacar alerta
+  - `previsao_liberacao` — data estimada (YYYY-MM-DD) quando ja em alta ou reserva
+- O CSV contem 10 leitos com status variados para cobrir os estados de UI.
 
 ## Solicitacao de vaga
 Campos atualmente usados (mock em frontend/src/views/Solicitacoes.vue):
