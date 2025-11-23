@@ -70,10 +70,14 @@ const activeItems = [
     to: '/altas',
     icon: ArrowTrendingUpIcon,
   },
+  {
+    label: 'Alertas',
+    to: '/alertas',
+    icon: BellAlertIcon,
+  },
 ];
 
 const disabledItems = [
-  { label: 'Alertas', icon: BellAlertIcon },
   { label: 'Indicadores', icon: ChartBarSquareIcon },
   { label: 'Historico', icon: ClockIcon },
 ];
