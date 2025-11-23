@@ -31,11 +31,11 @@ const statusConfig: Record<BedStatus, { label: string; className: string }> = {
   },
   desativado: {
     label: 'Desativado',
-    className: 'bg-slate-200 text-slate-600 border border-slate-300',
+    className: 'bg-slate-100 text-slate-600 border border-slate-300',
   },
   alta: {
     label: 'Alta Solicitada',
-    className: 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200',
+    className: 'bg-rose-100 text-rose-700 border border-rose-200',
   },
 };
 
