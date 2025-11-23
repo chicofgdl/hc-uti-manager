@@ -3,10 +3,10 @@
     <button
       ref="trigger"
       @click.stop="toggle"
-      class="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:scale-105 hover:bg-slate-50"
+      class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition-colors duration-150 hover:bg-blue-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-200"
       aria-label="Abrir notificacoes"
     >
-      <BellIcon class="h-5 w-5" />
+      <Bell class="h-5 w-5" />
       <span
         v-if="unreadCount > 0"
         class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow"
@@ -51,7 +51,7 @@
                 </div>
                 <p class="mt-1 text-xs text-slate-600 wrap-break-words">{{ notification.description }}</p>
                 <div class="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
-                  <ClockIcon class="h-3 w-3" />
+                  <Clock3 class="h-3 w-3" />
                   <span>{{ notification.time }}</span>
                 </div>
               </div>
@@ -77,12 +77,12 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  ArrowLeftOnRectangleIcon,
-  BellIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  UserPlusIcon,
-} from '@heroicons/vue/24/outline';
+  AlertTriangle,
+  Bell,
+  Clock3,
+  LogOut,
+  UserPlus,
+} from 'lucide-vue-next';
 
 type NotificationType = 'alert' | 'admission' | 'discharge';
 
@@ -131,17 +131,17 @@ const typeConfig: Record<
   }
 > = {
   alert: {
-    icon: ExclamationTriangleIcon,
+    icon: AlertTriangle,
     bg: 'bg-red-50',
     color: 'text-red-600',
   },
   admission: {
-    icon: UserPlusIcon,
+    icon: UserPlus,
     bg: 'bg-emerald-50',
     color: 'text-emerald-600',
   },
   discharge: {
-    icon: ArrowLeftOnRectangleIcon,
+    icon: LogOut,
     bg: 'bg-blue-50',
     color: 'text-blue-600',
   },
