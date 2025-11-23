@@ -17,6 +17,23 @@
         v-bind="leito"
       />
     </div>
+
+    <div class="mt-20 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-3xl font-bold text-slate-900">Resumo dos Leitos</h2>
+      </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div
+          v-for="card in overviewCards"
+          :key="card.title"
+          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <p class="text-sm font-medium text-slate-600">{{ card.title }}</p>
+          <p :class="['mt-2 text-3xl font-bold', card.color]">{{ card.value }}</p>
+          <p v-if="card.caption" class="mt-1 text-xs text-slate-500">{{ card.caption }}</p>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -118,5 +135,14 @@ const mockLeitos: Leito[] = [
     },
     tipoReserva: 'Emergencia',
   },
+];
+
+const overviewCards = [
+  { title: 'Taxa de Ocupacao Global', value: '66%', color: 'text-emerald-600', caption: '10 de 15 leitos ocupados' },
+  { title: 'Leitos Disponiveis', value: '5', color: 'text-emerald-600' },
+  { title: 'Leitos em Uso', value: '6', color: 'text-emerald-600' },
+  { title: 'Leitos em Higienizacao', value: '2', color: 'text-emerald-600' },
+  { title: 'Leitos Desativados', value: '0', color: 'text-emerald-600' },
+  { title: 'Reservas Pendentes', value: '7', color: 'text-emerald-600' },
 ];
 </script>
