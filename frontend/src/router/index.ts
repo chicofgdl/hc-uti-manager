@@ -10,8 +10,9 @@ import Pacientes from '../views/Pacientes.vue';
 const routes = [
   {
     path: '/',
-    name: 'Home',
+    name: 'Leitos',
     component: Home,
+    meta: { title: 'Gestão de Leitos da UTI' },
   },
   {
     path: '/login',
