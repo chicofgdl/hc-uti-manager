@@ -1,24 +1,6 @@
 <template>
   <section class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-3xl font-bold text-slate-900">Visao Geral dos Leitos</h2>
-      </div>
-      <UiButton variant="outline" size="sm" class="shadow-sm">
-        <FunnelIcon class="h-5 w-5 text-slate-500" />
-        Filtrar
-      </UiButton>
-    </div>
-
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      <BedCard
-        v-for="leito in mockLeitos"
-        :key="leito.leitoNumero"
-        v-bind="leito"
-      />
-    </div>
-
-    <div class="mt-20 space-y-3">
+    <div class="space-y-3 mb-12">
       <div class="flex items-center justify-between">
         <h2 class="text-3xl font-bold text-slate-900">Resumo dos Leitos</h2>
       </div>
@@ -34,16 +16,71 @@
         </div>
       </div>
     </div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="text-3xl font-bold text-slate-900">Visao Geral dos Leitos</h2>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <TransitionGroup
+          name="fade-scale"
+          tag="div"
+          class="flex flex-wrap items-center gap-2"
+        >
+          <button
+            v-for="option in statusFilterOptions"
+            v-if="filtrosAbertos"
+            :key="option.value"
+            class="flex items-center gap-2 rounded-lg border px-3 py-1 text-sm font-medium transition"
+            :class="
+              statusFilter === option.value
+                ? 'border-blue-200 bg-blue-50 text-blue-700 shadow-sm'
+                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            "
+            @click="setStatusFilter(option.value)"
+          >
+            <span class="h-2 w-2 rounded-full" :class="dotColor(option.value)" />
+            {{ option.label }}
+          </button>
+        </TransitionGroup>
+        <UiButton
+          variant="outline"
+          size="sm"
+          class="shadow-sm"
+          @click="toggleFiltros"
+        >
+          <FunnelIcon class="h-5 w-5 text-slate-600" />
+          <ChevronRightIcon
+            class="h-4 w-4 text-slate-500 transition-transform duration-200"
+            :class="filtrosAbertos ? 'rotate-180' : ''"
+          />
+        </UiButton>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <BedCard
+        v-for="leito in leitosFiltrados"
+        :key="leito.leitoNumero"
+        v-bind="leito"
+        @solicitar-alta="handleSolicitarAlta(leito)"
+        @cancelar-alta="handleCancelarAlta(leito)"
+        @cancelar-reserva="handleCancelarReserva(leito)"
+      />
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { FunnelIcon } from '@heroicons/vue/24/outline';
+import { computed, ref } from 'vue';
+import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import BedCard from '../components/BedCard.vue';
 import UiButton from '../components/ui/Button.vue';
+import { useToast } from 'vue-toastification';
 
 type BedStatus = 'disponivel' | 'ocupado' | 'higienizacao' | 'desativado' | 'alta';
 type BedType = 'cirurgico' | 'hem' | 'obstetrico' | 'outro' | 'nao_definido';
+type StatusFilter = BedStatus | 'todos';
 
 type Patient = {
   prontuario: string;
@@ -61,7 +98,7 @@ type Leito = {
   sinalizacaoTransferencia?: boolean;
 };
 
-const mockLeitos: Leito[] = [
+const leitos = ref<Leito[]>([
   {
     leitoNumero: '01',
     status: 'ocupado',
@@ -135,7 +172,29 @@ const mockLeitos: Leito[] = [
     },
     tipoReserva: 'Emergencia',
   },
-];
+  {
+    leitoNumero: '09',
+    status: 'disponivel',
+    tipo: 'outro',
+    proximoPaciente: {
+      prontuario: '345678',
+      idade: 61,
+      especialidade: 'Pneumologia',
+    },
+    tipoReserva: 'Emergencia',
+  },
+  {
+    leitoNumero: '10',
+    status: 'disponivel',
+    tipo: 'outro',
+    proximoPaciente: {
+      prontuario: '345678',
+      idade: 61,
+      especialidade: 'Pneumologia',
+    },
+    tipoReserva: 'Emergencia',
+  },
+]);
 
 const overviewCards = [
   { title: 'Taxa de Ocupacao Global', value: '66%', color: 'text-emerald-600', caption: '10 de 15 leitos ocupados' },
@@ -145,4 +204,72 @@ const overviewCards = [
   { title: 'Leitos Desativados', value: '0', color: 'text-emerald-600' },
   { title: 'Reservas Pendentes', value: '7', color: 'text-emerald-600' },
 ];
+
+const toast = useToast();
+
+const statusFilterOptions: { label: string; value: StatusFilter }[] = [
+  { label: 'Todos', value: 'todos' },
+  { label: 'Disponiveis', value: 'disponivel' },
+  { label: 'Ocupados', value: 'ocupado' },
+  { label: 'Higienizacao', value: 'higienizacao' },
+  { label: 'Desativados', value: 'desativado' },
+  { label: 'Alta', value: 'alta' },
+];
+
+const statusFilter = ref<StatusFilter>('todos');
+const filtrosAbertos = ref(false);
+
+const leitosFiltrados = computed(() => {
+  if (statusFilter.value === 'todos') return leitos.value;
+  return leitos.value.filter(leito => leito.status === statusFilter.value);
+});
+
+const setStatusFilter = (valor: StatusFilter) => {
+  statusFilter.value = statusFilter.value === valor ? 'todos' : valor;
+};
+
+const toggleFiltros = () => {
+  filtrosAbertos.value = !filtrosAbertos.value;
+};
+
+const dotColor = (valor: StatusFilter) => {
+  switch (valor) {
+    case 'disponivel':
+      return 'bg-emerald-500';
+    case 'ocupado':
+      return 'bg-amber-500';
+    case 'higienizacao':
+      return 'bg-blue-500';
+    case 'desativado':
+      return 'bg-slate-400';
+    case 'alta':
+      return 'bg-fuchsia-500';
+    default:
+      return 'bg-slate-300';
+  }
+};
+
+const handleSolicitarAlta = (leito: Leito) => {
+  toast.info(`Alta solicitada para o leito ${leito.leitoNumero}.`);
+};
+
+const handleCancelarAlta = (leito: Leito) => {
+  toast.warning(`Alta cancelada para o leito ${leito.leitoNumero}.`);
+};
+
+const handleCancelarReserva = (leito: Leito) => {
+  toast.error(`Reserva cancelada para o leito ${leito.leitoNumero}.`);
+};
 </script>
+
+<style scoped>
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: all 0.18s ease;
+}
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+</style>
