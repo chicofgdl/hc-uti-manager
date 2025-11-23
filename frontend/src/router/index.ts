@@ -6,13 +6,15 @@ import Admin from '../views/Admin.vue';
 
 import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
+import Solicitacoes from '../views/Solicitacoes.vue';
+import Altas from '../views/Altas.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Leitos',
     component: Home,
-    meta: { title: 'Gestão de Leitos da UTI' },
+    meta: { title: 'Gestao de Leitos da UTI' },
   },
   {
     path: '/login',
@@ -37,6 +39,18 @@ const routes = [
     name: 'Pacientes',
     component: Pacientes,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/solicitacoes',
+    name: 'Solicitacoes',
+    component: Solicitacoes,
+    meta: { title: 'Solicitacoes de Vaga' },
+  },
+  {
+    path: '/altas',
+    name: 'Altas',
+    component: Altas,
+    meta: { title: 'Solicitacoes de Alta' },
   },
 ];
 
