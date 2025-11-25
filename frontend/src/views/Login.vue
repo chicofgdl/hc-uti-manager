@@ -103,8 +103,6 @@
                 @click="clearForm"
                 :disabled="loading"
               >
-                <XCircleIcon class="h-5 w-5 mr-2" />
-                Limpar
               </Button>
               -->
             </div>
@@ -129,7 +127,7 @@ import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import Button from '../components/Button.vue';
-import { EyeIcon, EyeSlashIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 import { useToast } from 'vue-toastification';
 import { z } from 'zod';
 
@@ -163,13 +161,6 @@ const togglePasswordVisibility = () => {
   passwordVisible.value = !passwordVisible.value;
 };
 
-const clearForm = () => {
-  username.value = '';
-  password.value = '';
-  rememberMe.value = false;
-  error.value = '';
-  fieldErrors.value = {};
-};
 
 const handleLogin = async () => {
   error.value = '';
