@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
 
 const api = axios.create({
-  baseURL: '/', // Adjust if your API is on a different host
+  baseURL: import.meta.env.VITE_API_URL || '/', // Allows pointing to an external API on Vercel
   headers: {
     'Content-Type': 'application/json',
   }
