@@ -21,21 +21,50 @@ class PacientePostgresProvider(PacienteProviderInterface):
         self.session = session
 
     async def listar_pacientes(self) -> List[Dict[str, Any]]:
-        query_string = get_sql_query("paciente/listar_pacientes.sql")
-        query = text(query_string)
+        query = text(
+          """
+          SELECT
+                id,
+                leito_numero,
+                desativado,
+                em_higienizacao,
+                alta_solicitada,
+                status_interno,
+                observacoes,
+                usuario_responsavel,
+                atualizado_em
+            FROM uti.leito_interno
+            ORDER BY leito_numero
+          """
+        )
         
         result = await self.session.execute(query)
         pacientes = result.mappings().all()
         return [dict(paciente) for paciente in pacientes]
 
     async def obter_paciente_por_codigo(self, codigo: int) -> Dict[str, Any]:
-        query_string = get_sql_query("paciente/obter_paciente.sql")
-        query = text(query_string)
-        
+        query = text("""
+            SELECT
+                id,
+                leito_numero,
+                desativado,
+                em_higienizacao,
+                alta_solicitada,
+                status_interno,
+                observacoes,
+                usuario_responsavel,
+                atualizado_em
+            FROM uti.leito_interno
+            WHERE id = :codigo
+        """)
+
         result = await self.session.execute(query, {"codigo": codigo})
-        paciente = result.mappings().first()
-        
-        if not paciente:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado")
-            
-        return dict(paciente)
+        row = result.mappings().first()
+
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Registro não encontrado na tabela uti.leito_interno.",
+            )
+
+        return dict(row)

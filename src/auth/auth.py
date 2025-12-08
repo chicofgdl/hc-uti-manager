@@ -21,7 +21,10 @@ load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_EXP_HOURS = int(os.getenv("JWT_EXP_HOURS", 24))
 REFRESH_TOKEN_EXP_DAYS = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 30))
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() == "true"  # ← Adicione
+
+# Torna o scheme opcional se AUTH_ENABLED=false
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=AUTH_ENABLED)  # ← Modifique
 
 # --- Interface e Implementações de Provedor de Autenticação ---
 
@@ -177,6 +180,21 @@ class AuthHandler:
         await db.commit()
 
     def decode_token(self, token: str = Depends(oauth2_scheme)):
+        if not AUTH_ENABLED:
+            print("⚠️  WARNING: Authentication is DISABLED - using mock user")
+            return {
+                "username": "dev_user",
+                "groups": ["GLO-SEC-HCPE-SETISD", "Users"],
+                "email": "dev@localhost"
+            }
+        
+        # Se AUTH_ENABLED=true mas token não foi fornecido
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated"
+            )
+        # Código original
         try:
             if not JWT_SECRET:
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="JWT_SECRET not configured")
