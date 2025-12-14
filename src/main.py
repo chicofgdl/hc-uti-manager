@@ -60,7 +60,9 @@ app = FastAPI(
 )
 
 # Serve o frontend Vue 3 empacotado
-app.mount("/assets", StaticFiles(directory="src/static/dist/assets"), name="assets")
+static_dir = "frontend/dist/assets"
+if os.path.isdir(static_dir):
+    app.mount("/assets", StaticFiles(directory=static_dir), name="assets")
 
 @app.get("/")
 async def serve_frontend():
