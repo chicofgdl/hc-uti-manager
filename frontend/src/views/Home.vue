@@ -72,140 +72,55 @@
 
 <script setup lang="ts">
 import { FunnelIcon } from '@heroicons/vue/24/outline';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import BedCard from '../components/BedCard.vue';
 import UiButton from '../components/ui/Button.vue';
 import { useToast } from 'vue-toastification';
+import { getLeitosFormatados, getEstatisticasLeitos } from '../services/api';
+import type { LeitoFormatado, BedStatus } from '../types';
 
-type BedStatus = 'disponivel' | 'ocupado' | 'higienizacao' | 'desativado' | 'alta';
-type BedType = 'cirurgico' | 'hem' | 'obstetrico' | 'outro' | 'nao_definido';
 type StatusFilter = BedStatus | 'todos';
 
-type Patient = {
-  prontuario: string;
-  idade: number;
-  especialidade: string;
-};
+const leitos = ref<LeitoFormatado[]>([]);
 
-type Leito = {
-  leitoNumero: string;
-  status: BedStatus;
-  tipo: BedType;
-  pacienteAtual?: Patient;
-  proximoPaciente?: Patient;
-  tipoReserva?: string;
-  sinalizacaoTransferencia?: boolean;
-};
-
-const leitos = ref<Leito[]>([
-  {
-    leitoNumero: '01',
-    status: 'ocupado',
-    tipo: 'cirurgico',
-    pacienteAtual: {
-      prontuario: '123456',
-      idade: 67,
-      especialidade: 'Cardiologia',
-    },
-    proximoPaciente: {
-      prontuario: '654321',
-      idade: 54,
-      especialidade: 'Neurologia',
-    },
-    tipoReserva: 'Cirurgico',
-  },
-  {
-    leitoNumero: '02',
-    status: 'disponivel',
-    tipo: 'cirurgico',
-  },
-  {
-    leitoNumero: '03',
-    status: 'alta',
-    tipo: 'hem',
-    pacienteAtual: {
-      prontuario: '456789',
-      idade: 45,
-    especialidade: 'Oncologia',
-    },
-    sinalizacaoTransferencia: true,
-  },
-  {
-    leitoNumero: '04',
-    status: 'higienizacao',
-    tipo: 'cirurgico',
-  },
-  {
-    leitoNumero: '05',
-    status: 'ocupado',
-    tipo: 'hem',
-    pacienteAtual: {
-      prontuario: '789012',
-      idade: 52,
-      especialidade: 'Hematologia',
-    },
-  },
-  {
-    leitoNumero: '06',
-    status: 'desativado',
-    tipo: 'nao_definido',
-  },
-  {
-    leitoNumero: '07',
-    status: 'ocupado',
-    tipo: 'obstetrico',
-    pacienteAtual: {
-      prontuario: '234567',
-      idade: 29,
-      especialidade: 'Obstetricia',
-    },
-  },
-  {
-    leitoNumero: '08',
-    status: 'disponivel',
-    tipo: 'outro',
-    proximoPaciente: {
-      prontuario: '345678',
-      idade: 61,
-      especialidade: 'Pneumologia',
-    },
-    tipoReserva: 'Emergencia',
-  },
-  {
-    leitoNumero: '09',
-    status: 'disponivel',
-    tipo: 'outro',
-    proximoPaciente: {
-      prontuario: '345678',
-      idade: 61,
-      especialidade: 'Pneumologia',
-    },
-    tipoReserva: 'Emergencia',
-  },
-  {
-    leitoNumero: '10',
-    status: 'disponivel',
-    tipo: 'outro',
-    proximoPaciente: {
-      prontuario: '345678',
-      idade: 61,
-      especialidade: 'Pneumologia',
-    },
-    tipoReserva: 'Emergencia',
-  },
+const overviewCards = ref([
+  { title: 'Taxa de Ocupacao Global', value: '0%', color: 'text-emerald-600', caption: '0 de 0 leitos ocupados' },
+  { title: 'Leitos Disponiveis', value: '0', color: 'text-emerald-600' },
+  { title: 'Leitos em Uso', value: '0', color: 'text-emerald-600' },
+  { title: 'Leitos em Higienizacao', value: '0', color: 'text-emerald-600' },
+  { title: 'Leitos Desativados', value: '0', color: 'text-emerald-600' },
+  { title: 'Reservas Pendentes', value: '0', color: 'text-emerald-600' },
 ]);
 
-const overviewCards = [
-  { title: 'Taxa de Ocupacao Global', value: '66%', color: 'text-emerald-600', caption: '10 de 15 leitos ocupados' },
-  { title: 'Leitos Disponiveis', value: '5', color: 'text-emerald-600' },
-  { title: 'Leitos em Uso', value: '6', color: 'text-emerald-600' },
-  { title: 'Leitos em Higienizacao', value: '2', color: 'text-emerald-600' },
-  { title: 'Leitos Desativados', value: '0', color: 'text-emerald-600' },
-  { title: 'Reservas Pendentes', value: '7', color: 'text-emerald-600' },
-];
-
 const toast = useToast();
+
+// Carrega os dados mockados ao montar o componente
+onMounted(async () => {
+  try {
+    // Carrega os leitos
+    const leitosData = await getLeitosFormatados();
+    leitos.value = leitosData;
+
+    // Carrega as estatísticas
+    const stats = await getEstatisticasLeitos();
+    overviewCards.value = [
+      { 
+        title: 'Taxa de Ocupacao Global', 
+        value: `${stats.taxaOcupacao}%`, 
+        color: 'text-emerald-600', 
+        caption: `${stats.ocupados} de ${stats.total - stats.desativados} leitos ocupados` 
+      },
+      { title: 'Leitos Disponiveis', value: String(stats.disponiveis), color: 'text-emerald-600' },
+      { title: 'Leitos em Uso', value: String(stats.ocupados), color: 'text-emerald-600' },
+      { title: 'Leitos em Higienizacao', value: String(stats.higienizacao), color: 'text-emerald-600' },
+      { title: 'Leitos Desativados', value: String(stats.desativados), color: 'text-slate-400' },
+      { title: 'Reservas Pendentes', value: String(stats.comReserva), color: 'text-emerald-600' },
+    ];
+  } catch (error) {
+    toast.error('Erro ao carregar dados dos leitos.');
+  }
+});
 
 const statusFilterOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Todos', value: 'todos' },
@@ -249,15 +164,15 @@ const dotColor = (valor: StatusFilter) => {
   }
 };
 
-const handleSolicitarAlta = (leito: Leito) => {
+const handleSolicitarAlta = (leito: LeitoFormatado) => {
   toast.info(`Alta solicitada para o leito ${leito.leitoNumero}.`);
 };
 
-const handleCancelarAlta = (leito: Leito) => {
+const handleCancelarAlta = (leito: LeitoFormatado) => {
   toast.warning(`Alta cancelada para o leito ${leito.leitoNumero}.`);
 };
 
-const handleCancelarReserva = (leito: Leito) => {
+const handleCancelarReserva = (leito: LeitoFormatado) => {
   toast.error(`Reserva cancelada para o leito ${leito.leitoNumero}.`);
 };
 </script>

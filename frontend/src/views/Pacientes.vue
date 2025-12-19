@@ -61,16 +61,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useToast } from 'vue-toastification';
-import api from '../services/api';
+import { getPacientes, getPacientePorCodigo } from '../services/api';
+import type { Paciente } from '../types';
 import Card from '../components/Card.vue';
 import DataTable from '../components/DataTable.vue';
 import Button from '../components/Button.vue';
 
 const toast = useToast();
 
-const pacienteCodigoInput = ref(null);
+const pacienteCodigoInput = ref<number | null>(null);
 const loadingPaciente = ref(false);
-const pacienteDetalhe = ref<any | null>(null);
+const pacienteDetalhe = ref<Paciente | null>(null);
 
 const headers = ref([
   { text: 'Prontuário', value: 'codigo' },
@@ -79,11 +80,11 @@ const headers = ref([
   { text: 'Nome da Mãe', value: 'nome_mae' },
 ]);
 
-const pacientes = ref([]);
+const pacientes = ref<Paciente[]>([]);
 
 onMounted(async () => {
   try {
-    const { data } = await api.get('/api/pacientes');
+    const data = await getPacientes();
     pacientes.value = data;
   } catch (error) {
     toast.error('Falha ao carregar a lista de pacientes.');
@@ -98,25 +99,29 @@ const fetchPacientePorCodigo = async () => {
   loadingPaciente.value = true;
   pacienteDetalhe.value = null; // Clear previous details
   try {
-    const { data } = await api.get(`/api/pacientes/${pacienteCodigoInput.value}`);
-    pacienteDetalhe.value = data;
-    toast.success(`Paciente encontrado: ${data.nome}`);
+    const data = await getPacientePorCodigo(pacienteCodigoInput.value);
+    if (data) {
+      pacienteDetalhe.value = data;
+      toast.success(`Paciente encontrado: ${data.nome}`);
+    } else {
+      toast.error('Paciente não encontrado.');
+    }
   } catch (error) {
-    toast.error('Paciente não encontrado.');
+    toast.error('Erro ao buscar paciente.');
   } finally {
     loadingPaciente.value = false;
   }
 };
 
-const viewPaciente = (item: any) => {
+const viewPaciente = (item: Paciente) => {
   toast.info(`Visualizando paciente: ${item.nome}`);
 };
 
-const editPaciente = (item: any) => {
+const editPaciente = (item: Paciente) => {
   toast.warning(`Editando paciente: ${item.nome}`);
 };
 
-const deletePaciente = (item: any) => {
+const deletePaciente = (item: Paciente) => {
   toast.error(`Deletando paciente: ${item.nome}`);
 };
 </script>
