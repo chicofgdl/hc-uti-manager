@@ -12,8 +12,8 @@ from sqlalchemy import select, delete
 from ldap3 import Server, Connection, ALL, SUBTREE, ALL_ATTRIBUTES
 from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError, LDAPException
 
-from ..resources.database import get_app_db_session
-from ..models.refresh_token import RefreshToken
+from resources.database import get_app_db_session
+from models.refresh_token import RefreshToken
 
 load_dotenv()
 

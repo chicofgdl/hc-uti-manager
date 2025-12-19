@@ -2,7 +2,7 @@
 
 import os
 from dotenv import load_dotenv
-from .database import DatabaseManager
+from resources.database import DatabaseManager
 
 load_dotenv() # Load environment variables from .env file
 

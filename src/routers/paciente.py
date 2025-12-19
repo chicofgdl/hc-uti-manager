@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
 from typing import List
 
-from ..controllers import paciente_controller
+from controllers import paciente_controller
 # Alteração: Importamos apenas a FÁBRICA
-from ..dependencies import get_paciente_provider
-from ..providers.interfaces.paciente_provider_interface import PacienteProviderInterface
+from dependencies import get_paciente_provider
+from providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 
-from ..auth.auth import auth_handler
+from auth.auth import auth_handler
 
 # --- PONTO ÚNICO DE CONFIGURAÇÃO PARA ESTE ROTEADOR ---
 # Para usar o banco de dados em produção, altere esta linha para "postgres"

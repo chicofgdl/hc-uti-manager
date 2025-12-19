@@ -10,9 +10,9 @@ from starlette.concurrency import run_in_threadpool
 
 
 
-from ..auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS
+from auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS
 
-from ..resources.database import get_app_db_session
+from resources.database import get_app_db_session
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

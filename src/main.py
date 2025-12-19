@@ -1,14 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 import os
+import sys
+# Ensure local package modules (e.g., `models`, `controllers`) are importable when running
+# the app with uvicorn from the project root. This inserts `src/` into sys.path.
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
 
-from .resources.database import DatabaseManager, Base
+from resources.database import DatabaseManager, Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -68,14 +72,25 @@ if os.path.isdir(static_dir):
 async def serve_frontend():
     """
     Serve o arquivo index.html do frontend Vue.
+    Try common build locations and return a helpful 404 if not found.
     """
-    return FileResponse(os.path.join("src", "static", "dist", "index.html"))
+    candidates = [
+        os.path.join("frontend", "dist", "index.html"),
+        os.path.join("frontend", "index.html"),
+        os.path.join("src", "static", "dist", "index.html"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return FileResponse(path)
+    # none found — return a clear error to avoid RuntimeError when FileResponse tries to open a missing file
+    raise HTTPException(status_code=404, detail=f"Frontend index.html not found. Checked paths: {candidates}")
 
 # Placeholder para incluir os roteadores da API
-from .routers import paciente, auth, admin
+from routers import paciente, auth, admin, leito
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(leito.router)
 
 # Exemplo:
 # from .routers import aih, bpa, material

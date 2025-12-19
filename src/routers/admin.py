@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List
 
-from ..auth.auth import auth_handler
+from auth.auth import auth_handler
 
 router = APIRouter(prefix="/api", tags=["Admin"])
 
