@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Callable
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,22 +48,20 @@ def _get_leito_csv_provider() -> LeitoProviderInterface:
     pacientes_csv = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
     # Informational: ensure files exist — helps debug issues during startup or requests
     if not os.path.isfile(leitos_csv):
-        print(f"WARNING: leitos CSV not found at {leitos_csv}")
+        logging.warning("leitos CSV not found at %s", leitos_csv)
     if not os.path.isfile(pacientes_csv):
-        print(f"WARNING: pacientes CSV not found at {pacientes_csv}")
+        logging.warning("pacientes CSV not found at %s", pacientes_csv)
     try:
         return LeitoCsvProvider(leitos_csv=leitos_csv, pacientes_csv=pacientes_csv)
     except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        print("ERROR constructing LeitoCsvProvider:\n", tb)
+        logging.exception("Error constructing LeitoCsvProvider")
         from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail={"error": str(e), "trace": tb})
+        raise HTTPException(status_code=500, detail={"error": str(e)})
 
 def get_leito_provider() -> Callable[..., LeitoProviderInterface]:
     """Return dependency function for leito provider based on env vars."""
     selected = "banco" if os.getenv("POSTGRES_DSN") else "csv"
-    print(f"INFO: Selected leito provider strategy: {selected}")
+    logging.info("Selected leito provider strategy: %s", selected)
     if os.getenv("POSTGRES_DSN"):
         return _get_leito_banco_provider
     return _get_leito_csv_provider
@@ -74,25 +73,113 @@ def get_leito_controller(
     Wrap construction in error handling to provide clear server logs on failure."""
     try:
         return LeitosController(provider)
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        print("ERROR constructing LeitosController:\n", tb)
+    except Exception:
+        logging.exception("Error constructing LeitosController")
         from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail={"error": str(e), "trace": tb})
+        raise HTTPException(status_code=500, detail={"error": "LeitosController construction failed"})
     
 # --- Solicitacao Leitos: provider + controller wiring -----------------------
 # Import the postgres session provider; older code referenced `database.get_async_session`
 # which did not exist in the new layout. Use `resources.postgres.get_postgres_session`.
-from resources.postgres import get_postgres_session as get_async_session
 from providers.solicitacao_reserva_provider import SolicitacaoReservaProvider
 from controllers.solicitacao_leitos_controller import SolicitacaoReservaController
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+import importlib
+
+
+async def _maybe_get_postgres_session():
+    """Try to import and yield a Postgres session dependency if configured.
+    Returns None when Postgres is not configured or import fails.
+    """
+    try:
+        postgres = importlib.import_module("resources.postgres")
+        # If POSTGRES_DSN not configured inside that module it may raise; handle gracefully
+        get_postgres_session = getattr(postgres, "get_postgres_session", None)
+        if get_postgres_session is None:
+            yield None
+            return
+        # Delegate to the real dependency generator
+        async for session in get_postgres_session():
+            yield session
+            return
+    except Exception:
+        yield None
+        return
+
+
+# Fallback in-memory provider when Postgres is not configured (useful for local/dev)
+class InMemorySolicitacaoProvider:
+    def __init__(self):
+        self._data = []
+        self._next_id = 1
+
+    async def criar(self, prontuario: int, idade: int, especialidade: str) -> None:
+        item = {
+            "id": self._next_id,
+            "status": "PENDENTE",
+            "prontuario_paciente": prontuario,
+            "idade_paciente": idade,
+            "especialidade_paciente": especialidade,
+            "leito_id": None,
+            "criada_em": None,
+            "atualizada_em": None,
+        }
+        self._next_id += 1
+        self._data.append(item)
+
+    async def listar_todas(self):
+        return list(self._data)
+
+    async def listar_pendentes(self):
+        return [
+            {
+                "id": d["id"],
+                "prontuario": d["prontuario_paciente"],
+                "idade": d["idade_paciente"],
+                "especialidade": d["especialidade_paciente"],
+                "status": d["status"],
+                "lto_lto_id": d.get("leito_id"),
+            }
+            for d in self._data if d.get("status") == "PENDENTE"
+        ]
+
+    async def aprovar(self, solicitacao_id: int, lto_lto_id: str) -> None:
+        for d in self._data:
+            if d["id"] == solicitacao_id and d["status"] == "PENDENTE":
+                d["status"] = "APROVADA"
+                d["leito_id"] = lto_lto_id
+                return
+        raise ValueError("Solicitação não encontrada ou já processada")
+
+    async def negar(self, solicitacao_id: int, motivo: str | None = None) -> None:
+        for d in self._data:
+            if d["id"] == solicitacao_id and d["status"] == "PENDENTE":
+                d["status"] = "NEGADA"
+                d["motivo_negacao"] = motivo
+                return
+        raise ValueError("Solicitação não encontrada ou já processada")
+
+    async def cancelar(self, solicitacao_id: int, perfil: str, motivo: str | None = None) -> None:
+        for d in self._data:
+            if d["id"] == solicitacao_id:
+                d["status"] = "CANCELADA"
+                d["cancelado_por"] = perfil
+                d["motivo_cancelamento"] = motivo
+                return
+        raise ValueError("Solicitação não encontrada")
 
 
 def get_solicitacao_reserva_controller(
-    session: AsyncSession = Depends(get_async_session),
+    session: AsyncSession = Depends(_maybe_get_postgres_session),
 ) -> SolicitacaoReservaController:
-    provider = SolicitacaoReservaProvider(session)
+    # If Postgres session provider is unavailable, fallback to in-memory provider
+    logging.debug("get_solicitacao_reserva_controller called, session=%s", type(session))
+    try:
+        if session is None:
+            raise RuntimeError()
+        provider = SolicitacaoReservaProvider(session)
+    except Exception as e:
+        logging.warning("Falling back to InMemorySolicitacaoProvider: %s", repr(e))
+        provider = InMemorySolicitacaoProvider()
     return SolicitacaoReservaController(provider)

@@ -2,8 +2,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import text
 from typing import List, Optional
 
-class TransferenciaPacienteInput:
-    async def criar(self, data: TransferenciaPacienteInput):
+
+class TransferenciaPostgresProvider:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def criar(self, data):
         await self.session.execute(text("""
             INSERT INTO transferencias_paciente
             (prontuario_paciente, idade_paciente, especialidade_paciente)
@@ -21,12 +25,10 @@ class TransferenciaPacienteInput:
             FROM transferencias_paciente
             ORDER BY solicitada_em DESC
         """))
-        return [dict(row._mapping) for row in result.fetchall()]
+        return result.mappings().all()
 
     async def aceitar(self, transferencia_id: int, leito_id: str):
-
         async with self.session.begin():
-
             # 1️⃣ Atualiza transferência
             await self.session.execute(text("""
                 UPDATE transferencias_paciente
@@ -60,9 +62,9 @@ class TransferenciaPacienteInput:
                     atualizado_em = NOW()
                 WHERE lto_lto_id = :leito
             """), {
-                "p": paciente.prontuario_paciente,
-                "i": paciente.idade_paciente,
-                "e": paciente.especialidade_paciente,
+                "p": getattr(paciente, 'prontuario_paciente', None),
+                "i": getattr(paciente, 'idade_paciente', None),
+                "e": getattr(paciente, 'especialidade_paciente', None),
                 "leito": leito_id
             })
 

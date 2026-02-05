@@ -21,7 +21,9 @@ load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_EXP_HOURS = int(os.getenv("JWT_EXP_HOURS", 24))
 REFRESH_TOKEN_EXP_DAYS = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 30))
-AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() == "true"  # ← Adicione
+# Por padrão desabilitamos a autenticação para facilitar testes locais.
+# Para habilitar, defina AUTH_ENABLED=true no seu arquivo .env ou variáveis de ambiente.
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() == "true"
 
 # Torna o scheme opcional se AUTH_ENABLED=false
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=AUTH_ENABLED)  # ← Modifique
