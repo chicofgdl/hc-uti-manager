@@ -86,11 +86,13 @@ async def serve_frontend():
     raise HTTPException(status_code=404, detail=f"Frontend index.html not found. Checked paths: {candidates}")
 
 # Placeholder para incluir os roteadores da API
-from routers import paciente, auth, admin, leito
+from routers import paciente, auth, admin, leito, solicitacao_leito, reservas
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(leito.router)
+app.include_router(solicitacao_leito.router)
+app.include_router(reservas.router)
 
 # Exemplo:
 # from .routers import aih, bpa, material

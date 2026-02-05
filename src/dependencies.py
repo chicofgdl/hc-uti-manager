@@ -80,3 +80,19 @@ def get_leito_controller(
         print("ERROR constructing LeitosController:\n", tb)
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail={"error": str(e), "trace": tb})
+    
+# --- Solicitacao Leitos: provider + controller wiring -----------------------
+# Import the postgres session provider; older code referenced `database.get_async_session`
+# which did not exist in the new layout. Use `resources.postgres.get_postgres_session`.
+from resources.postgres import get_postgres_session as get_async_session
+from providers.solicitacao_reserva_provider import SolicitacaoReservaProvider
+from controllers.solicitacao_leitos_controller import SolicitacaoReservaController
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+def get_solicitacao_reserva_controller(
+    session: AsyncSession = Depends(get_async_session),
+) -> SolicitacaoReservaController:
+    provider = SolicitacaoReservaProvider(session)
+    return SolicitacaoReservaController(provider)

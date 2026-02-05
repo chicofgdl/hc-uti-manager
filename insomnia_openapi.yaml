@@ -1,0 +1,333 @@
+openapi: "3.0.1"
+info:
+  title: HC-UTI Manager API (Insomnia/OpenAPI)
+  version: "1.0.0"
+  description: OpenAPI spec gerado automaticamente para importar no Insomnia
+servers:
+  - url: http://localhost:8000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /api/login:
+    post:
+      summary: Login (form)
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                remember_me:
+                  type: boolean
+      responses:
+        '200':
+          description: Token de acesso retornado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+  /api/token/refresh:
+    post:
+      summary: Refresh access token using HttpOnly refresh cookie
+      responses:
+        '200':
+          description: Novo access token
+  /api/logout:
+    post:
+      summary: Logout (invalida refresh token cookie)
+      responses:
+        '200':
+          description: Logout realizado
+  /api/users/me:
+    get:
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dados do usuário
+  /api/admin-only-data:
+    get:
+      summary: Dados apenas para admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dados sensíveis do admin
+  /api/pacientes:
+    get:
+      summary: Listar pacientes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de pacientes
+  /api/pacientes/{codigo}:
+    get:
+      summary: Obter paciente por código
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paciente
+  /api/pacientes/disponiveis/quantidade:
+    get:
+      summary: Quantidade de leitos disponíveis (via leitos controller)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Quantidade disponível
+  /leitos:
+    get:
+      summary: Listar leitos
+      responses:
+        '200':
+          description: Lista de leitos
+  /leitos/{lto_lto_id}/reservar:
+    post:
+      summary: Reservar leito
+      parameters:
+        - name: lto_lto_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Payload ReservaLeitoInput
+      responses:
+        '200':
+          description: Reserva executada
+  /leitos/{leito_id}/alta:
+    post:
+      summary: Solicitar alta
+      parameters:
+        - name: leito_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Alta solicitada
+    delete:
+      summary: Cancelar alta
+      parameters:
+        - name: leito_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Alta cancelada
+  /leitos/disponiveis-para-reserva:
+    get:
+      summary: Listar leitos disponíveis para reserva
+      responses:
+        '200':
+          description: Lista de leitos disponíveis
+  /leitos/quantidade-disponiveis:
+    get:
+      summary: Quantidade de leitos disponíveis
+      responses:
+        '200':
+          description: Quantidade de leitos disponíveis
+  /solicitacoes-reserva:
+    post:
+      summary: Criar solicitação de reserva
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prontuario:
+                  type: string
+                idade:
+                  type: integer
+                especialidade:
+                  type: string
+      responses:
+        '201':
+          description: Solicitação criada
+    get:
+      summary: Listar todas solicitações
+      responses:
+        '200':
+          description: Lista de solicitações
+  /solicitacoes-reserva/pendentes:
+    get:
+      summary: Listar solicitações pendentes
+      responses:
+        '200':
+          description: Lista pendentes
+  /solicitacoes-reserva/{id}/aprovar:
+    post:
+      summary: Aprovar solicitação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lto_lto_id:
+                  type: string
+      responses:
+        '200':
+          description: Solicitação aprovada
+  /solicitacoes-reserva/{id}/negar:
+    post:
+      summary: Negar solicitação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+      responses:
+        '200':
+          description: Solicitação negada
+  /solicitacoes-reserva/{id}/cancelar:
+    post:
+      summary: Cancelar solicitação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+      responses:
+        '200':
+          description: Solicitação cancelada
+  /reservas:
+    post:
+      summary: Criar reserva
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prontuario:
+                  type: string
+                idade:
+                  type: integer
+                especialidade:
+                  type: string
+      responses:
+        '201':
+          description: Reserva criada
+  /transferencias:
+    post:
+      summary: Criar transferência (arquivo presente em routers)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Transferência criada
+    get:
+      summary: Listar transferências
+      responses:
+        '200':
+          description: Lista de transferências
+  /transferencias/{transferencia_id}/aceitar:
+    post:
+      summary: Aceitar transferência
+      parameters:
+        - name: transferencia_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leito_id:
+                  type: string
+      responses:
+        '200':
+          description: Transferência aceita
+  /transferencias/{transferencia_id}/negar:
+    post:
+      summary: Negar transferência
+      parameters:
+        - name: transferencia_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+      responses:
+        '200':
+          description: Transferência negada
+security:
+  - bearerAuth: []

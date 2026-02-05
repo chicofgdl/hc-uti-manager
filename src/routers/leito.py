@@ -60,3 +60,11 @@ async def listar_leitos_disponiveis_para_reserva(
         print("ERROR in listar_leitos_disponiveis_para_reserva:\n", tb)
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail={"error": str(e), "trace": tb})
+
+
+@router.get("/quantidade-disponiveis")
+async def quantidade_leitos_disponiveis(
+    controller: LeitosController = Depends(get_leito_controller)
+):
+    quantidade = await controller.quantidade_disponiveis()
+    return {"quantidade_leitos_disponiveis": quantidade}
