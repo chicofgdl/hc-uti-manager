@@ -1,275 +1,95 @@
 <template>
   <section class="space-y-6">
-    <div class="space-y-3 mb-12">
+    <div class="space-y-3 mb-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-3xl font-bold text-slate-900">Resumo dos Leitos</h2>
+        <h2 class="text-3xl font-bold text-slate-900">Leitos da UTI</h2>
+        <UiButton size="sm" variant="outline" @click="bedsStore.load">
+          Atualizar
+        </UiButton>
       </div>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <div
-          v-for="card in overviewCards"
-          :key="card.title"
-          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <p class="text-sm font-medium text-slate-600">{{ card.title }}</p>
-          <p :class="['mt-2 text-3xl font-bold', card.color]">{{ card.value }}</p>
-          <p v-if="card.caption" class="mt-1 text-xs text-slate-500">{{ card.caption }}</p>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-sm font-medium text-slate-600">Total de leitos</p>
+          <p class="mt-1 text-3xl font-bold text-slate-900">{{ totalBeds }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-sm font-medium text-slate-600">Disponíveis para reserva</p>
+          <p class="mt-1 text-3xl font-bold text-emerald-700">{{ bedsStore.availableCount }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-sm font-medium text-slate-600">Reservados (aguardando paciente)</p>
+          <p class="mt-1 text-3xl font-bold text-blue-700">{{ reservedBeds }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-sm font-medium text-slate-600">Ocupados</p>
+          <p class="mt-1 text-3xl font-bold text-amber-700">{{ occupiedBeds }}</p>
         </div>
       </div>
     </div>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="text-3xl font-bold text-slate-900">Visao Geral dos Leitos</h2>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <TransitionGroup
-          name="fade-scale"
-          tag="div"
-          class="flex flex-wrap items-center gap-2"
-        >
-          <button
-            v-for="option in statusFilterOptions"
-            v-if="filtrosAbertos"
-            :key="option.value"
-            class="flex items-center gap-2 rounded-lg border px-3 py-1 text-sm font-medium transition"
-            :class="
-              statusFilter === option.value
-                ? 'border-blue-200 bg-blue-50 text-blue-700 shadow-sm'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            "
-            @click="setStatusFilter(option.value)"
-          >
-            <span class="h-2 w-2 rounded-full" :class="dotColor(option.value)" />
-            {{ option.label }}
-          </button>
-        </TransitionGroup>
-        <UiButton
-          variant="outline"
-          size="sm"
-          class="shadow-sm"
-          @click="toggleFiltros"
-        >
-          <FunnelIcon class="h-5 w-5 text-slate-600" />
-          <ChevronRightIcon
-            class="h-4 w-4 text-slate-500 transition-transform duration-200"
-            :class="filtrosAbertos ? 'rotate-180' : ''"
-          />
-        </UiButton>
-      </div>
-    </div>
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      <BedCard
-        v-for="leito in leitosFiltrados"
-        :key="leito.leitoNumero"
-        v-bind="leito"
-        @solicitar-alta="handleSolicitarAlta(leito)"
-        @cancelar-alta="handleCancelarAlta(leito)"
-        @cancelar-reserva="handleCancelarReserva(leito)"
-      />
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <h3 class="text-lg font-semibold text-slate-900">Controle de disponibilidade</h3>
+        <span class="text-sm text-slate-500">Clique para liberar ou bloquear para reserva</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+            <tr>
+              <th class="px-4 py-3">Leito</th>
+              <th class="px-4 py-3">Disponibilidade</th>
+              <th class="px-4 py-3">Ocupação</th>
+              <th class="px-4 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="bed in bedsStore.beds" :key="bed.id" class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-semibold text-slate-900">{{ bed.code }}</td>
+              <td class="px-4 py-3">
+                <UiBadge :class="bed.availability_status === 'DISPONIVEL' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'">
+                  {{ bed.availability_status === 'DISPONIVEL' ? 'Disponível' : 'Não disponível' }}
+                </UiBadge>
+              </td>
+              <td class="px-4 py-3">
+                <UiBadge :class="bed.occupancy_status === 'LIVRE' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'">
+                  {{ bed.occupancy_status === 'LIVRE' ? 'Livre' : 'Ocupado' }}
+                </UiBadge>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex gap-2">
+                  <UiButton
+                    size="xs"
+                    variant="outline"
+                    :disabled="bed.occupancy_status !== 'LIVRE' && bed.availability_status === 'DISPONIVEL'"
+                    @click="bedsStore.toggleAvailability(bed.id, bed.availability_status !== 'DISPONIVEL')"
+                  >
+                    {{ bed.availability_status === 'DISPONIVEL' ? 'Bloquear reserva' : 'Liberar reserva' }}
+                  </UiButton>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { FunnelIcon } from '@heroicons/vue/24/outline';
-import { computed, ref } from 'vue';
-import { ChevronRightIcon } from '@heroicons/vue/20/solid';
-import BedCard from '../components/BedCard.vue';
+import { computed, onMounted } from 'vue';
 import UiButton from '../components/ui/Button.vue';
-import { useToast } from 'vue-toastification';
+import UiBadge from '../components/ui/Badge.vue';
+import { useBedsStore } from '../stores/beds';
 
-type BedStatus = 'disponivel' | 'ocupado' | 'higienizacao' | 'desativado' | 'alta';
-type BedType = 'cirurgico' | 'hem' | 'obstetrico' | 'outro' | 'nao_definido';
-type StatusFilter = BedStatus | 'todos';
+const bedsStore = useBedsStore();
 
-type Patient = {
-  prontuario: string;
-  idade: number;
-  especialidade: string;
-};
-
-type Leito = {
-  leitoNumero: string;
-  status: BedStatus;
-  tipo: BedType;
-  pacienteAtual?: Patient;
-  proximoPaciente?: Patient;
-  tipoReserva?: string;
-  sinalizacaoTransferencia?: boolean;
-};
-
-const leitos = ref<Leito[]>([
-  {
-    leitoNumero: '01',
-    status: 'ocupado',
-    tipo: 'cirurgico',
-    pacienteAtual: {
-      prontuario: '123456',
-      idade: 67,
-      especialidade: 'Cardiologia',
-    },
-    proximoPaciente: {
-      prontuario: '654321',
-      idade: 54,
-      especialidade: 'Neurologia',
-    },
-    tipoReserva: 'Cirurgico',
-  },
-  {
-    leitoNumero: '02',
-    status: 'disponivel',
-    tipo: 'cirurgico',
-  },
-  {
-    leitoNumero: '03',
-    status: 'alta',
-    tipo: 'hem',
-    pacienteAtual: {
-      prontuario: '456789',
-      idade: 45,
-    especialidade: 'Oncologia',
-    },
-    sinalizacaoTransferencia: true,
-  },
-  {
-    leitoNumero: '04',
-    status: 'higienizacao',
-    tipo: 'cirurgico',
-  },
-  {
-    leitoNumero: '05',
-    status: 'ocupado',
-    tipo: 'hem',
-    pacienteAtual: {
-      prontuario: '789012',
-      idade: 52,
-      especialidade: 'Hematologia',
-    },
-  },
-  {
-    leitoNumero: '06',
-    status: 'desativado',
-    tipo: 'nao_definido',
-  },
-  {
-    leitoNumero: '07',
-    status: 'ocupado',
-    tipo: 'obstetrico',
-    pacienteAtual: {
-      prontuario: '234567',
-      idade: 29,
-      especialidade: 'Obstetricia',
-    },
-  },
-  {
-    leitoNumero: '08',
-    status: 'disponivel',
-    tipo: 'outro',
-    proximoPaciente: {
-      prontuario: '345678',
-      idade: 61,
-      especialidade: 'Pneumologia',
-    },
-    tipoReserva: 'Emergencia',
-  },
-  {
-    leitoNumero: '09',
-    status: 'disponivel',
-    tipo: 'outro',
-    proximoPaciente: {
-      prontuario: '345678',
-      idade: 61,
-      especialidade: 'Pneumologia',
-    },
-    tipoReserva: 'Emergencia',
-  },
-  {
-    leitoNumero: '10',
-    status: 'disponivel',
-    tipo: 'outro',
-    proximoPaciente: {
-      prontuario: '345678',
-      idade: 61,
-      especialidade: 'Pneumologia',
-    },
-    tipoReserva: 'Emergencia',
-  },
-]);
-
-const overviewCards = [
-  { title: 'Taxa de Ocupacao Global', value: '66%', color: 'text-emerald-600', caption: '10 de 15 leitos ocupados' },
-  { title: 'Leitos Disponiveis', value: '5', color: 'text-emerald-600' },
-  { title: 'Leitos em Uso', value: '6', color: 'text-emerald-600' },
-  { title: 'Leitos em Higienizacao', value: '2', color: 'text-emerald-600' },
-  { title: 'Leitos Desativados', value: '0', color: 'text-emerald-600' },
-  { title: 'Reservas Pendentes', value: '7', color: 'text-emerald-600' },
-];
-
-const toast = useToast();
-
-const statusFilterOptions: { label: string; value: StatusFilter }[] = [
-  { label: 'Todos', value: 'todos' },
-  { label: 'Disponiveis', value: 'disponivel' },
-  { label: 'Ocupados', value: 'ocupado' },
-  { label: 'Higienizacao', value: 'higienizacao' },
-  { label: 'Desativados', value: 'desativado' },
-  { label: 'Alta', value: 'alta' },
-];
-
-const statusFilter = ref<StatusFilter>('todos');
-const filtrosAbertos = ref(false);
-
-const leitosFiltrados = computed(() => {
-  if (statusFilter.value === 'todos') return leitos.value;
-  return leitos.value.filter(leito => leito.status === statusFilter.value);
+onMounted(() => {
+  bedsStore.load();
 });
 
-const setStatusFilter = (valor: StatusFilter) => {
-  statusFilter.value = statusFilter.value === valor ? 'todos' : valor;
-};
-
-const toggleFiltros = () => {
-  filtrosAbertos.value = !filtrosAbertos.value;
-};
-
-const dotColor = (valor: StatusFilter) => {
-  switch (valor) {
-    case 'disponivel':
-      return 'bg-emerald-500';
-    case 'ocupado':
-      return 'bg-amber-500';
-    case 'higienizacao':
-      return 'bg-blue-500';
-    case 'desativado':
-      return 'bg-slate-400';
-    case 'alta':
-      return 'bg-fuchsia-500';
-    default:
-      return 'bg-slate-300';
-  }
-};
-
-const handleSolicitarAlta = (leito: Leito) => {
-  toast.info(`Alta solicitada para o leito ${leito.leitoNumero}.`);
-};
-
-const handleCancelarAlta = (leito: Leito) => {
-  toast.warning(`Alta cancelada para o leito ${leito.leitoNumero}.`);
-};
-
-const handleCancelarReserva = (leito: Leito) => {
-  toast.error(`Reserva cancelada para o leito ${leito.leitoNumero}.`);
-};
+const totalBeds = computed(() => bedsStore.beds.length);
+const occupiedBeds = computed(() => bedsStore.beds.filter(b => b.occupancy_status === 'OCUPADO').length);
+const reservedBeds = computed(() =>
+  bedsStore.beds.filter(b => b.occupancy_status === 'LIVRE' && b.availability_status === 'NAO_DISPONIVEL').length
+);
 </script>
-
-<style scoped>
-.fade-scale-enter-active,
-.fade-scale-leave-active {
-  transition: all 0.18s ease;
-}
-.fade-scale-enter-from,
-.fade-scale-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.98);
-}
-</style>

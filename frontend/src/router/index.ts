@@ -47,13 +47,13 @@ const routes = [
     path: '/solicitacoes',
     name: 'Solicitacoes',
     component: Solicitacoes,
-    meta: { title: 'Solicitacoes de Vaga' },
+    meta: { title: 'Reservas de Leito' },
   },
   {
     path: '/altas',
     name: 'Altas',
     component: Altas,
-    meta: { title: 'Solicitacoes de Alta' },
+    meta: { title: 'Transferencias' },
   },
   {
     path: '/alertas',

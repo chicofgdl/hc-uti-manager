@@ -2,138 +2,187 @@
   <section class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="space-y-1">
-        <h2 class="text-3xl font-bold text-slate-900">Solicitacoes de Vaga</h2>
+        <h2 class="text-3xl font-bold text-slate-900">Reservas de Leito</h2>
+        <p class="text-sm text-slate-600">
+          CC solicita, UTI decide. Use o seletor de perfil no topo para ver notificações do papel correspondente.
+        </p>
       </div>
-      <div class="flex flex-wrap gap-3">
-        <UiButton variant="outline" size="sm" class="shadow-sm">
-          <CalendarIcon class="h-5 w-5 text-slate-600" />
-          Filtrar Data
-        </UiButton>
-        <UiButton size="sm" class="shadow-sm">
-          <PlusIcon class="h-5 w-5 text-white" />
-          Nova Solicitacao
-        </UiButton>
+      <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p class="text-sm text-slate-600">Leitos disponíveis</p>
+        <span class="text-2xl font-bold text-emerald-700">{{ bedsStore.availableCount }}</span>
       </div>
     </div>
 
-    <div class="grid gap-4">
-      <article
-        v-for="sol in solicitacoes"
-        :key="sol.id"
-        class="rounded-xl border border-slate-200 bg-white shadow-sm"
-      >
-        <header class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Prontuario</p>
-            <p class="text-lg font-semibold text-slate-900">{{ sol.prontuario }}</p>
-            <p class="mt-1 text-sm text-slate-600">
-              {{ sol.idade }} anos
-              <span class="text-slate-400">•</span>
-              {{ sol.especialidade }}
-            </p>
-          </div>
-          <UiBadge :class="statusClass[sol.status]">
-            {{ sol.status }}
-          </UiBadge>
-        </header>
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">Solicitar reserva (CC)</h3>
+        <form class="space-y-3" @submit.prevent="handleCreate">
+          <label class="block text-sm font-medium text-slate-700">
+            Prontuário do paciente
+            <input
+              v-model="form.patientId"
+              required
+              class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              placeholder="Ex: 77001"
+            />
+          </label>
+          <label class="block text-sm font-medium text-slate-700">
+            Observação
+            <textarea
+              v-model="form.notes"
+              class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              rows="3"
+              placeholder="Motivo clínico, horário previsto..."
+            />
+          </label>
+          <UiButton type="submit" class="w-full" :disabled="!form.patientId">
+            Enviar solicitação
+          </UiButton>
+        </form>
+      </div>
 
-        <div class="px-5 py-4">
-          <div class="grid gap-4 sm:grid-cols-3">
+      <div class="lg:col-span-2 space-y-6">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div>
-              <p class="text-xs uppercase tracking-wide text-slate-500">Tipo</p>
-              <p class="mt-1 font-medium text-slate-900">{{ sol.tipo }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-wide text-slate-500">Turno</p>
-              <p class="mt-1 font-medium text-slate-900">{{ sol.turno }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-wide text-slate-500">Destino</p>
-              <p class="mt-1 font-medium text-slate-900">
-                {{ sol.destino ?? 'Pendente' }}
-              </p>
+              <h3 class="text-lg font-semibold text-slate-900">Pendentes (UTI decide)</h3>
+              <p class="text-xs text-slate-500">Aceitar define leito; negar informa CC.</p>
             </div>
           </div>
-
-          <div class="mt-4 flex flex-wrap gap-2">
-            <UiButton
-              v-if="sol.status === 'Pendente'"
-              size="sm"
-            >
-              Reservar Leito
-            </UiButton>
-            <UiButton
-              v-if="sol.status === 'Pendente'"
-              size="sm"
-              variant="destructive"
-            >
-              Cancelar Solicitacao
-            </UiButton>
-            <UiButton
-              v-else-if="sol.status === 'Reservado'"
-              size="sm"
-              variant="outline"
-            >
-              Cancelar Reserva
-            </UiButton>
+          <div v-if="pendingReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
+            Nenhuma solicitação pendente.
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div v-for="res in pendingReservations" :key="res.id" class="px-4 py-4 flex flex-wrap items-center gap-3">
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-slate-900">
+                  Paciente {{ res.patient.external_id }}
+                </p>
+                <p class="text-xs text-slate-500">
+                  Criado em {{ formatDate(res.created_at) }}
+                </p>
+              </div>
+              <select
+                v-model="selectedBed[res.id]"
+                class="rounded-lg border border-slate-200 px-2 py-1 text-sm"
+              >
+                <option :value="null">Alocação automática</option>
+                <option v-for="bed in bedsStore.availableBeds" :key="bed.id" :value="bed.id">
+                  {{ bed.code }}
+                </option>
+              </select>
+              <div class="flex gap-2">
+                <UiButton size="sm" @click="decide(res.id, 'ACCEPT')">Aceitar</UiButton>
+                <UiButton size="sm" variant="destructive" @click="decide(res.id, 'DENY')">Negar</UiButton>
+              </div>
+            </div>
           </div>
         </div>
-      </article>
+
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <h3 class="text-lg font-semibold text-slate-900">Minhas reservas (CC)</h3>
+            <span class="text-xs text-slate-500">Cancelar libera o leito se já aceito.</span>
+          </div>
+          <div v-if="ccReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
+            Nenhuma reserva criada.
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div v-for="res in ccReservations" :key="res.id" class="px-4 py-4 flex flex-wrap items-center gap-3">
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-slate-900">Paciente {{ res.patient.external_id }}</p>
+                <p class="text-xs text-slate-500">
+                  Status:
+                  <UiBadge :class="statusClass(res.status)">{{ res.status }}</UiBadge>
+                  <span v-if="res.bed_id" class="ml-2 text-slate-600 text-xs">Leito {{ res.bed_id }}</span>
+                </p>
+              </div>
+              <UiButton
+                v-if="['PENDENTE', 'ACEITA'].includes(res.status)"
+                size="sm"
+                variant="outline"
+                @click="cancel(res.id)"
+              >
+                Cancelar
+              </UiButton>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { CalendarIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import { computed, onMounted, reactive } from 'vue';
 import UiBadge from '../components/ui/Badge.vue';
 import UiButton from '../components/ui/Button.vue';
+import { useBedsStore } from '../stores/beds';
+import { useReservationsStore } from '../stores/reservations';
+import { useToast } from 'vue-toastification';
 
-type SolicitacaoStatus = 'Pendente' | 'Reservado';
+const bedsStore = useBedsStore();
+const reservationsStore = useReservationsStore();
+const toast = useToast();
 
-type Solicitacao = {
-  id: string;
-  prontuario: string;
-  idade: number;
-  especialidade: string;
-  tipo: string;
-  status: SolicitacaoStatus;
-  turno: string;
-  destino?: string;
+const form = reactive({
+  patientId: '',
+  notes: '',
+});
+
+const selectedBed: Record<number, number | null> = reactive({});
+
+onMounted(() => {
+  bedsStore.load();
+  reservationsStore.load();
+});
+
+const pendingReservations = computed(() => reservationsStore.pending);
+const ccReservations = computed(() => reservationsStore.reservations);
+
+const statusClass = (status: string) => {
+  switch (status) {
+    case 'PENDENTE':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'ACEITA':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'NEGADA':
+      return 'bg-rose-50 text-rose-700 border-rose-200';
+    default:
+      return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
 };
 
-const solicitacoes: Solicitacao[] = [
-  {
-    id: '1',
-    prontuario: '123456',
-    idade: 67,
-    especialidade: 'Cardiologia',
-    tipo: 'Cirurgico',
-    status: 'Pendente',
-    turno: 'Manha',
-  },
-  {
-    id: '2',
-    prontuario: '789012',
-    idade: 45,
-    especialidade: 'Oncologia',
-    tipo: 'HEM',
-    status: 'Reservado',
-    destino: 'Leito 05',
-    turno: 'Tarde',
-  },
-  {
-    id: '3',
-    prontuario: '345678',
-    idade: 29,
-    especialidade: 'Obstetricia',
-    tipo: 'Obstetrico',
-    status: 'Pendente',
-    turno: 'Noite',
-  },
-];
-
-const statusClass: Record<SolicitacaoStatus, string> = {
-  Pendente: 'border-rose-300 bg-rose-500/80 text-rose-100',
-  Reservado: 'border-emerald-300 bg-emerald-500/80 text-emerald-100',
+const handleCreate = async () => {
+  try {
+    await reservationsStore.create({
+      patientId: form.patientId,
+      notes: form.notes || undefined,
+    });
+    form.patientId = '';
+    form.notes = '';
+  } catch (error: any) {
+    toast.error(error.response?.data?.detail || 'Erro ao criar reserva.');
+  }
 };
+
+const decide = async (id: number, decision: 'ACCEPT' | 'DENY') => {
+  try {
+    await reservationsStore.decide(id, decision, selectedBed[id] || null);
+    bedsStore.load();
+  } catch (error: any) {
+    toast.error(error.response?.data?.detail || 'Erro ao decidir reserva.');
+  }
+};
+
+const cancel = async (id: number) => {
+  try {
+    await reservationsStore.cancelByCc(id);
+    bedsStore.load();
+  } catch (error: any) {
+    toast.error(error.response?.data?.detail || 'Erro ao cancelar.');
+  }
+};
+
+const formatDate = (value: string) => new Date(value).toLocaleString('pt-BR', { hour12: false });
 </script>

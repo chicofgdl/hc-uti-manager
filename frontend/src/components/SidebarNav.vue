@@ -74,17 +74,17 @@ const isActive = (path: string) => route.path === path;
 
 const activeItems = [
   {
-    label: 'Leitos',
+    label: 'Leitos UTI',
     to: '/',
     icon: Bed,
   },
   {
-    label: 'Solicitações de leito',
+    label: 'Reservas',
     to: '/solicitacoes',
     icon: FileText,
   },
   {
-    label: 'Solicitações de alta',
+    label: 'Transferências',
     to: '/altas',
     icon: LogOut,
   },

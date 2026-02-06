@@ -12,19 +12,30 @@
             <div class="space-y-0.5">
               <h1 class="text-xl font-semibold text-slate-900">{{ headerTitle }}</h1>
             </div>
-            <div class="flex items-center gap-3">
-              <NotificationsPopover />
-              <ProfileDropdown v-if="authStore.isAuthenticated" />
-              <router-link
-                v-else
-                to="/login"
-                class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+          <div class="flex items-center gap-3">
+            <div class="flex items-center rounded-full border border-slate-200 bg-white p-1 text-xs font-semibold text-slate-700 shadow-sm">
+              <button
+                v-for="option in roleOptions"
+                :key="option.value"
+                class="rounded-full px-2 py-1 transition"
+                :class="roleStore.role === option.value ? 'bg-blue-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+                @click="roleStore.setRole(option.value)"
               >
-                Login
-              </router-link>
+                {{ option.label }}
+              </button>
             </div>
+            <NotificationsPopover />
+            <ProfileDropdown v-if="authStore.isAuthenticated" />
+            <router-link
+              v-else
+              to="/login"
+              class="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+                Login
+            </router-link>
           </div>
-        </header>
+        </div>
+      </header>
 
         <main class="flex-1 overflow-y-auto bg-slate-50 px-5 py-6 md:px-8 md:py-8">
           <router-view />
@@ -41,9 +52,11 @@ import SidebarNav from '../components/SidebarNav.vue';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
 import NotificationsPopover from '../components/NotificationsPopover.vue';
 import { useAuthStore } from '../stores/auth';
+import { useRoleStore } from '../stores/role';
 
 const route = useRoute();
 const authStore = useAuthStore();
+const roleStore = useRoleStore();
 const sidebarCollapsed = ref(false);
 
 const toggleSidebar = () => {
@@ -56,4 +69,9 @@ const headerTitle = computed(() => {
   }
   return 'Gestão de Leitos UTI';
 });
+
+const roleOptions = [
+  { value: 'ICU', label: 'UTI' },
+  { value: 'SURGICAL_CENTER', label: 'CC' },
+];
 </script>

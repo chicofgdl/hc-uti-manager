@@ -37,6 +37,10 @@ from providers.interfaces.leito_provider_interface import LeitoProviderInterface
 from providers.implementations.banco.leito_postegres_provide import LeitoBancoBProvider
 from providers.implementations.banco_aghu.leito_csv_provider import LeitoCsvProvider
 
+from controllers.care_controller import CareController
+from providers.implementations.app.care_provider import CareProvider
+from resources.database import get_app_db_session
+
 async def _get_leito_banco_provider(
     session: AsyncSession = Depends(get_aghu_db_session)
 ) -> LeitoProviderInterface:
@@ -80,3 +84,16 @@ def get_leito_controller(
         print("ERROR constructing LeitosController:\n", tb)
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail={"error": str(e), "trace": tb})
+
+
+# --- Care (Beds/Reservations/Transfers/Notifications) ------------------------
+async def get_care_provider(
+    session: AsyncSession = Depends(get_app_db_session),
+) -> CareProvider:
+    return CareProvider(session=session)
+
+
+def get_care_controller(
+    provider: CareProvider = Depends(get_care_provider),
+) -> CareController:
+    return CareController(provider)
