@@ -74,7 +74,7 @@ import { Bell, FileText, ArrowRightLeft, LogOut } from 'lucide-vue-next';
 const notificationsStore = useNotificationsStore();
 const roleStore = useRoleStore();
 
-const filters = [
+const filters: Array<{ value: 'all' | 'unread'; label: string }> = [
   { value: 'all', label: 'Todas' },
   { value: 'unread', label: 'Não lidas' },
 ];

@@ -53,6 +53,7 @@ import ProfileDropdown from '../components/ProfileDropdown.vue';
 import NotificationsPopover from '../components/NotificationsPopover.vue';
 import { useAuthStore } from '../stores/auth';
 import { useRoleStore } from '../stores/role';
+import type { Role } from '../types/care';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -70,7 +71,7 @@ const headerTitle = computed(() => {
   return 'Gestão de Leitos UTI';
 });
 
-const roleOptions = [
+const roleOptions: Array<{ value: Role; label: string }> = [
   { value: 'ICU', label: 'UTI' },
   { value: 'SURGICAL_CENTER', label: 'CC' },
 ];

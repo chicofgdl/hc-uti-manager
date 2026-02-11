@@ -55,7 +55,6 @@ export const useReservationsStore = defineStore('reservations', () => {
     pending,
     accepted,
     load,
-    loadCc,
     create,
     decide,
     cancelByCc,
