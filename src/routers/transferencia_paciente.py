@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, Body
 from typing import Optional
 
-from ..controllers.transferencia_paciente_controller import (
+from controllers.transferencia_paciente_controller import (
     TransferenciaPacienteController
 )
-from ..dependencies import get_transferencia_paciente_controller
-from ..models.transferencia import (
+from dependencies import get_transferencia_paciente_controller
+from models.transferencia_paciente import (
     TransferenciaPacienteInput,
     AceitarTransferenciaInput
 )
+from auth.auth import auth_handler
 
 router = APIRouter(
     prefix="/transferencias",
@@ -20,7 +21,8 @@ async def criar_transferencia(
     data: TransferenciaPacienteInput,
     controller: TransferenciaPacienteController = Depends(
         get_transferencia_paciente_controller
-    )
+    ),
+    _ = Depends(auth_handler.require_role("enfermeiro_cirurgia"))
 ):
     await controller.criar(data)
     return {
@@ -31,7 +33,8 @@ async def criar_transferencia(
 async def listar_transferencias(
     controller: TransferenciaPacienteController = Depends(
         get_transferencia_paciente_controller
-    )
+    ),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     return await controller.listar()
 
@@ -41,7 +44,8 @@ async def aceitar_transferencia(
     data: AceitarTransferenciaInput,
     controller: TransferenciaPacienteController = Depends(
         get_transferencia_paciente_controller
-    )
+    ),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     await controller.aceitar(
         transferencia_id=transferencia_id,
@@ -57,7 +61,8 @@ async def negar_transferencia(
     motivo: Optional[str] = Body(default=None, embed=True),
     controller: TransferenciaPacienteController = Depends(
         get_transferencia_paciente_controller
-    )
+    ),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     await controller.negar(
         transferencia_id=transferencia_id,

@@ -44,7 +44,7 @@ async def login(
 
     try:
 
-        user = await run_in_threadpool(auth_handler.authenticate_user, form_data.username, form_data.password)
+        user = await auth_handler.authenticate_user(form_data.username, form_data.password, db)
 
     except HTTPException as e:
 

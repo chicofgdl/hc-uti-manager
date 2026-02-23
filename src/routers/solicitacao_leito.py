@@ -16,6 +16,7 @@ router = APIRouter(
 async def criar_solicitacao(
     request: Request,
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
+    _ = Depends(auth_handler.require_role("enfermeiro_cirurgia"))
 ):
     try:
         payload = await request.json()
@@ -44,6 +45,7 @@ async def criar_solicitacao(
 @router.get("")
 async def listar_todas(
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     try:
         return await controller.listar_todas()
@@ -56,6 +58,7 @@ async def listar_todas(
 @router.get("/pendentes")
 async def listar_pendentes(
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     try:
         return await controller.listar_pendentes()
@@ -70,6 +73,7 @@ async def aprovar(
     id: int,
     data: dict = Body(...),
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     try:
         await controller.aprovar(id, data["lto_lto_id"])
@@ -88,6 +92,7 @@ async def negar(
     id: int,
     data: dict | None = Body(None),
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
+    _ = Depends(auth_handler.require_role("enfermeiro_uti"))
 ):
     try:
         await controller.negar(id, data.get("motivo") if data else None)
@@ -102,7 +107,7 @@ async def negar(
 async def cancelar(
     id: int,
     data: dict | None = Body(None),
-    perfil_payload: dict = Depends(auth_handler.decode_token),
+    perfil_payload: dict = Depends(auth_handler.require_any_role(["enfermeiro_uti", "enfermeiro_cirurgia"])),
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
 ):
     try:

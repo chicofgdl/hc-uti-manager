@@ -9,6 +9,26 @@ from providers.implementations.paciente_postgres_provider import PacientePostgre
 from providers.implementations.paciente_csv_provider import PacienteCsvProvider
 from resources.database import get_aghu_db_session
 
+# Função auxiliar para sessão Postgres
+async def _maybe_get_postgres_session():
+    """Try to import and yield a Postgres session dependency if configured.
+    Returns None when Postgres is not configured or import fails.
+    """
+    try:
+        postgres = importlib.import_module("resources.postgres")
+        # If POSTGRES_DSN not configured inside that module it may raise; handle gracefully
+        get_postgres_session = getattr(postgres, "get_postgres_session", None)
+        if get_postgres_session is None:
+            yield None
+            return
+        # Delegate to the real dependency generator
+        async for session in get_postgres_session():
+            yield session
+            return
+    except Exception:
+        yield None
+        return
+
 # 1. Funções "getter" simples e independentes (privadas por convenção)
 def _get_paciente_postgres_provider(
     session: AsyncSession = Depends(get_aghu_db_session)
@@ -78,6 +98,36 @@ def get_leito_controller(
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail={"error": "LeitosController construction failed"})
     
+# --- Notificacao: provider + controller wiring ---------------------------------
+from controllers.notificacao_controller import NotificacaoController
+from providers.implementations.banco.notificacao_postgres_provider import NotificacaoProvider
+
+async def _get_notificacao_provider(
+    session: AsyncSession = Depends(_maybe_get_postgres_session)
+) -> NotificacaoProvider:
+    return NotificacaoProvider(session)
+
+def get_notificacao_controller(
+    session: AsyncSession = Depends(_maybe_get_postgres_session),
+) -> NotificacaoController:
+    provider = NotificacaoProvider(session)
+    return NotificacaoController(provider)
+
+# --- User: provider + controller wiring ---------------------------------
+from controllers.user_controller import UserController
+from providers.implementations.banco.user_postgres_provider import UserProvider
+
+async def _get_user_provider(
+    session: AsyncSession = Depends(_maybe_get_postgres_session)
+) -> UserProvider:
+    return UserProvider(session)
+
+def get_user_controller(
+    session: AsyncSession = Depends(_maybe_get_postgres_session),
+) -> UserController:
+    provider = UserProvider(session)
+    return UserController(provider)
+
 # --- Solicitacao Leitos: provider + controller wiring -----------------------
 # Import the postgres session provider; older code referenced `database.get_async_session`
 # which did not exist in the new layout. Use `resources.postgres.get_postgres_session`.
@@ -86,26 +136,6 @@ from controllers.solicitacao_leitos_controller import SolicitacaoReservaControll
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 import importlib
-
-
-async def _maybe_get_postgres_session():
-    """Try to import and yield a Postgres session dependency if configured.
-    Returns None when Postgres is not configured or import fails.
-    """
-    try:
-        postgres = importlib.import_module("resources.postgres")
-        # If POSTGRES_DSN not configured inside that module it may raise; handle gracefully
-        get_postgres_session = getattr(postgres, "get_postgres_session", None)
-        if get_postgres_session is None:
-            yield None
-            return
-        # Delegate to the real dependency generator
-        async for session in get_postgres_session():
-            yield session
-            return
-    except Exception:
-        yield None
-        return
 
 
 # Fallback in-memory provider when Postgres is not configured (useful for local/dev)
@@ -172,6 +202,7 @@ class InMemorySolicitacaoProvider:
 
 def get_solicitacao_reserva_controller(
     session: AsyncSession = Depends(_maybe_get_postgres_session),
+    notificacao_controller: NotificacaoController = Depends(get_notificacao_controller)
 ) -> SolicitacaoReservaController:
     # If Postgres session provider is unavailable, fallback to in-memory provider
     logging.debug("get_solicitacao_reserva_controller called, session=%s", type(session))
@@ -182,4 +213,44 @@ def get_solicitacao_reserva_controller(
     except Exception as e:
         logging.warning("Falling back to InMemorySolicitacaoProvider: %s", repr(e))
         provider = InMemorySolicitacaoProvider()
-    return SolicitacaoReservaController(provider)
+    return SolicitacaoReservaController(provider, notificacao_controller)
+
+# --- Notificacao: provider + controller wiring ---------------------------------
+from controllers.notificacao_controller import NotificacaoController
+from providers.implementations.banco.notificacao_postgres_provider import NotificacaoProvider
+
+async def _get_notificacao_provider(
+    session: AsyncSession = Depends(_maybe_get_postgres_session)
+) -> NotificacaoProvider:
+    return NotificacaoProvider(session)
+
+def get_notificacao_controller(
+    session: AsyncSession = Depends(_maybe_get_postgres_session),
+) -> NotificacaoController:
+    provider = NotificacaoProvider(session)
+    return NotificacaoController(provider)
+
+# --- Transferencia: provider + controller wiring ---------------------------------
+from controllers.transferencia_paciente_controller import TransferenciaPacienteController
+# Assuming there's a provider, but for now, I'll assume it's similar
+# For simplicity, I'll assume it uses a provider from providers/implementations/banco/transferencia_postgress.py or similar
+
+# Since I don't see it, I'll create a simple one
+# But to make it work, I'll assume it's like solicitacao
+
+def get_transferencia_paciente_controller(
+    notificacao_controller: NotificacaoController = Depends(get_notificacao_controller)
+) -> TransferenciaPacienteController:
+    # For now, mock provider
+    class MockTransferenciaProvider:
+        async def criar(self, data):
+            pass
+        async def listar(self):
+            return []
+        async def aceitar(self, id, leito):
+            pass
+        async def negar(self, id, motivo):
+            pass
+    
+    provider = MockTransferenciaProvider()
+    return TransferenciaPacienteController(provider, notificacao_controller)

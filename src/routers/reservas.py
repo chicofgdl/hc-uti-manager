@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status, HTTPException, Body
 from typing import Any, Dict
 from controllers.solicitacao_leitos_controller import SolicitacaoReservaController
 from dependencies import get_solicitacao_reserva_controller
+from auth.auth import auth_handler
 
 router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/reservas", tags=["Reservas"])
 async def criar_reserva(
     data: dict = Body(...),
     controller: SolicitacaoReservaController = Depends(get_solicitacao_reserva_controller),
+    _ = Depends(auth_handler.require_role("enfermeiro_cirurgia"))
 ):
     prontuario = data.get("prontuario") or data.get("prontuario_paciente")
     idade = data.get("idade") or data.get("idade_paciente")
