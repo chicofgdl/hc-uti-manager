@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Callable
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +16,7 @@ def _get_paciente_postgres_provider(
     return PacientePostgresProvider(session=session)
 
 def _get_paciente_csv_provider() -> PacienteProviderInterface:
-    csv_path = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
+    csv_path = _resolve_csv_path("PACIENTE_CSV_PATH", "data/pacientes.csv")
     return PacienteCsvProvider(csv_path=csv_path)
 
 # 2. A FÁBRICA: A única função que o roteador vai conhecer.
@@ -39,7 +40,19 @@ from providers.implementations.banco_aghu.leito_csv_provider import LeitoCsvProv
 
 from controllers.care_controller import CareController
 from providers.implementations.app.care_provider import CareProvider
-from resources.database import get_app_db_session
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve_csv_path(env_var: str, default_relative_path: str) -> str:
+    configured = os.getenv(env_var, default_relative_path)
+    if not configured or not configured.strip():
+        configured = default_relative_path
+    candidate = Path(configured)
+    if not candidate.is_absolute():
+        candidate = PROJECT_ROOT / candidate
+    return str(candidate)
 
 async def _get_leito_banco_provider(
     session: AsyncSession = Depends(get_aghu_db_session)
@@ -47,8 +60,8 @@ async def _get_leito_banco_provider(
     return LeitoBancoBProvider(session=session)
 
 def _get_leito_csv_provider() -> LeitoProviderInterface:
-    leitos_csv = os.getenv("LEITOS_CSV_PATH", "data/leitos.csv")
-    pacientes_csv = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
+    leitos_csv = _resolve_csv_path("LEITOS_CSV_PATH", "data/leitos.csv")
+    pacientes_csv = _resolve_csv_path("PACIENTE_CSV_PATH", "data/pacientes.csv")
     # Informational: ensure files exist — helps debug issues during startup or requests
     if not os.path.isfile(leitos_csv):
         print(f"WARNING: leitos CSV not found at {leitos_csv}")
@@ -87,10 +100,14 @@ def get_leito_controller(
 
 
 # --- Care (Beds/Reservations/Transfers/Notifications) ------------------------
-async def get_care_provider(
-    session: AsyncSession = Depends(get_app_db_session),
-) -> CareProvider:
-    return CareProvider(session=session)
+async def get_care_provider() -> CareProvider:
+    leitos_csv = _resolve_csv_path("LEITOS_CSV_PATH", "data/leitos.csv")
+    pacientes_csv = _resolve_csv_path("PACIENTE_CSV_PATH", "data/pacientes.csv")
+    if not os.path.isfile(leitos_csv):
+        print(f"WARNING: care leitos CSV not found at {leitos_csv}")
+    if not os.path.isfile(pacientes_csv):
+        print(f"WARNING: care pacientes CSV not found at {pacientes_csv}")
+    return CareProvider(leitos_csv_path=leitos_csv, pacientes_csv_path=pacientes_csv)
 
 
 def get_care_controller(

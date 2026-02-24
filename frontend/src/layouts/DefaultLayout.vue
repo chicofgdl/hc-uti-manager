@@ -13,16 +13,19 @@
               <h1 class="text-xl font-semibold text-slate-900">{{ headerTitle }}</h1>
             </div>
           <div class="flex items-center gap-3">
-            <div class="flex items-center rounded-full border border-slate-200 bg-white p-1 text-xs font-semibold text-slate-700 shadow-sm">
-              <button
-                v-for="option in roleOptions"
-                :key="option.value"
-                class="rounded-full px-2 py-1 transition"
-                :class="roleStore.role === option.value ? 'bg-blue-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-                @click="roleStore.setRole(option.value)"
-              >
-                {{ option.label }}
-              </button>
+            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+              <span class="px-2 text-[11px] uppercase tracking-wide text-slate-500">Perfil Ativo</span>
+              <div class="flex items-center rounded-full bg-slate-100 p-1">
+                <button
+                  v-for="option in roleOptions"
+                  :key="option.value"
+                  class="rounded-full px-2 py-1 transition"
+                  :class="roleStore.role === option.value ? 'bg-blue-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'"
+                  @click="roleStore.setRole(option.value)"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
             </div>
             <NotificationsPopover />
             <ProfileDropdown v-if="authStore.isAuthenticated" />

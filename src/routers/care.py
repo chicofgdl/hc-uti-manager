@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from auth.auth import auth_handler
 from controllers.care_controller import CareController
@@ -24,7 +24,16 @@ router = APIRouter(prefix="/api", tags=["UTI & CC"])
 # --- Beds (UTI) --------------------------------------------------------------
 @router.get("/icu/beds", response_model=list[BedOut], dependencies=[Depends(auth_handler.decode_token)])
 async def list_beds(controller: CareController = Depends(get_care_controller)):
-    return await controller.list_beds()
+    try:
+        return await controller.list_beds()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+
+        tb = traceback.format_exc()
+        print("ERROR in /api/icu/beds:\n", tb)
+        raise HTTPException(status_code=500, detail={"error": str(exc), "trace": tb})
 
 
 @router.patch(

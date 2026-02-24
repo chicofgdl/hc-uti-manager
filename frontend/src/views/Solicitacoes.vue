@@ -6,6 +6,7 @@
         <p class="text-sm text-slate-600">
           CC solicita, UTI decide. Use o seletor de perfil no topo para ver notificações do papel correspondente.
         </p>
+        <p class="text-sm text-amber-700">{{ profileHint }}</p>
       </div>
       <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <p class="text-sm text-slate-600">Leitos disponíveis</p>
@@ -15,30 +16,35 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 class="text-lg font-semibold text-slate-900 mb-2">Solicitar reserva (CC)</h3>
-        <form class="space-y-3" @submit.prevent="handleCreate">
-          <label class="block text-sm font-medium text-slate-700">
-            Prontuário do paciente
-            <input
-              v-model="form.patientId"
-              required
-              class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              placeholder="Ex: 77001"
-            />
-          </label>
-          <label class="block text-sm font-medium text-slate-700">
-            Observação
-            <textarea
-              v-model="form.notes"
-              class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              rows="3"
-              placeholder="Motivo clínico, horário previsto..."
-            />
-          </label>
-          <UiButton type="submit" class="w-full" :disabled="!form.patientId">
-            Enviar solicitação
-          </UiButton>
-        </form>
+        <template v-if="isCc">
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">Solicitar reserva (CC)</h3>
+          <form class="space-y-3" @submit.prevent="handleCreate">
+            <label class="block text-sm font-medium text-slate-700">
+              Prontuário do paciente
+              <input
+                v-model="form.patientId"
+                required
+                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Ex: 77001"
+              />
+            </label>
+            <label class="block text-sm font-medium text-slate-700">
+              Observação
+              <textarea
+                v-model="form.notes"
+                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                rows="3"
+                placeholder="Motivo clínico, horário previsto..."
+              />
+            </label>
+            <UiButton type="submit" class="w-full" :disabled="!form.patientId">
+              Enviar solicitação
+            </UiButton>
+          </form>
+        </template>
+        <div v-else class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+          Solicitação de reserva é permitida apenas para o perfil CC.
+        </div>
       </div>
 
       <div class="lg:col-span-2 space-y-6">
@@ -49,7 +55,10 @@
               <p class="text-xs text-slate-500">Aceitar define leito; negar informa CC.</p>
             </div>
           </div>
-          <div v-if="pendingReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
+          <div v-if="!isIcu" class="px-4 py-6 text-sm text-slate-500">
+            Troque para o perfil UTI para aceitar ou negar solicitações.
+          </div>
+          <div v-else-if="pendingReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
             Nenhuma solicitação pendente.
           </div>
           <div v-else class="divide-y divide-slate-100">
@@ -81,20 +90,22 @@
 
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <h3 class="text-lg font-semibold text-slate-900">Minhas reservas (CC)</h3>
-            <span class="text-xs text-slate-500">Cancelar libera o leito se já aceito.</span>
+            <h3 class="text-lg font-semibold text-slate-900">{{ isCc ? 'Minhas reservas (CC)' : 'Reservas (UTI)' }}</h3>
+            <span class="text-xs text-slate-500">
+              {{ isCc ? 'Cancelar envia aviso para UTI.' : 'Cancelar envia aviso para CC.' }}
+            </span>
           </div>
-          <div v-if="ccReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
+          <div v-if="allReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
             Nenhuma reserva criada.
           </div>
           <div v-else class="divide-y divide-slate-100">
-            <div v-for="res in ccReservations" :key="res.id" class="px-4 py-4 flex flex-wrap items-center gap-3">
+            <div v-for="res in allReservations" :key="res.id" class="px-4 py-4 flex flex-wrap items-center gap-3">
               <div class="flex-1">
                 <p class="text-sm font-semibold text-slate-900">Paciente {{ res.patient.external_id }}</p>
                 <p class="text-xs text-slate-500">
                   Status:
                   <UiBadge :class="statusClass(res.status)">{{ res.status }}</UiBadge>
-                  <span v-if="res.bed_id" class="ml-2 text-slate-600 text-xs">Leito {{ res.bed_id }}</span>
+                  <span v-if="res.bed_id" class="ml-2 text-slate-600 text-xs">Leito {{ bedCode(res.bed_id) }}</span>
                 </p>
               </div>
               <UiButton
@@ -103,7 +114,7 @@
                 variant="outline"
                 @click="cancel(res.id)"
               >
-                Cancelar
+                {{ isCc ? 'Cancelar (CC)' : 'Cancelar (UTI)' }}
               </UiButton>
             </div>
           </div>
@@ -119,10 +130,12 @@ import UiBadge from '../components/ui/Badge.vue';
 import UiButton from '../components/ui/Button.vue';
 import { useBedsStore } from '../stores/beds';
 import { useReservationsStore } from '../stores/reservations';
+import { useRoleStore } from '../stores/role';
 import { useToast } from 'vue-toastification';
 
 const bedsStore = useBedsStore();
 const reservationsStore = useReservationsStore();
+const roleStore = useRoleStore();
 const toast = useToast();
 
 const form = reactive({
@@ -138,7 +151,14 @@ onMounted(() => {
 });
 
 const pendingReservations = computed(() => reservationsStore.pending);
-const ccReservations = computed(() => reservationsStore.reservations);
+const allReservations = computed(() => reservationsStore.reservations);
+const isIcu = computed(() => roleStore.role === 'ICU');
+const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
+const profileHint = computed(() => (
+  isCc.value
+    ? 'Perfil CC ativo: você pode solicitar e cancelar suas reservas.'
+    : 'Perfil UTI ativo: você pode aceitar, negar e cancelar reservas ativas.'
+));
 
 const statusClass = (status: string) => {
   switch (status) {
@@ -154,6 +174,10 @@ const statusClass = (status: string) => {
 };
 
 const handleCreate = async () => {
+  if (!isCc.value) {
+    toast.error('Ação permitida apenas para o perfil CC.');
+    return;
+  }
   try {
     await reservationsStore.create({
       patientId: form.patientId,
@@ -167,6 +191,10 @@ const handleCreate = async () => {
 };
 
 const decide = async (id: number, decision: 'ACCEPT' | 'DENY') => {
+  if (!isIcu.value) {
+    toast.error('Ação permitida apenas para o perfil UTI.');
+    return;
+  }
   try {
     await reservationsStore.decide(id, decision, selectedBed[id] || null);
     bedsStore.load();
@@ -177,7 +205,14 @@ const decide = async (id: number, decision: 'ACCEPT' | 'DENY') => {
 
 const cancel = async (id: number) => {
   try {
-    await reservationsStore.cancelByCc(id);
+    if (isCc.value) {
+      await reservationsStore.cancelByCc(id);
+    } else if (isIcu.value) {
+      await reservationsStore.cancelByIcu(id);
+    } else {
+      toast.error('Perfil inválido para cancelar reserva.');
+      return;
+    }
     bedsStore.load();
   } catch (error: any) {
     toast.error(error.response?.data?.detail || 'Erro ao cancelar.');
@@ -185,4 +220,9 @@ const cancel = async (id: number) => {
 };
 
 const formatDate = (value: string) => new Date(value).toLocaleString('pt-BR', { hour12: false });
+
+const bedCode = (bedId: number) => {
+  const bed = bedsStore.beds.find((item) => item.id === bedId);
+  return bed?.code || String(bedId);
+};
 </script>

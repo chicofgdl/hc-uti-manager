@@ -7,6 +7,9 @@
           Atualizar
         </UiButton>
       </div>
+      <p v-if="!isIcu" class="text-sm text-amber-700">
+        Perfil ativo: CC. Visualização em modo leitura; para disponibilizar/bloquear leitos, troque para UTI.
+      </p>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <p class="text-sm font-medium text-slate-600">Total de leitos</p>
@@ -58,13 +61,15 @@
               <td class="px-4 py-3">
                 <div class="flex gap-2">
                   <UiButton
+                    v-if="isIcu"
                     size="xs"
                     variant="outline"
                     :disabled="bed.occupancy_status !== 'LIVRE' && bed.availability_status === 'DISPONIVEL'"
-                    @click="bedsStore.toggleAvailability(bed.id, bed.availability_status !== 'DISPONIVEL')"
+                    @click="handleToggleAvailability(bed.id, bed.availability_status !== 'DISPONIVEL')"
                   >
                     {{ bed.availability_status === 'DISPONIVEL' ? 'Bloquear reserva' : 'Liberar reserva' }}
                   </UiButton>
+                  <span v-else class="text-xs text-slate-500">Somente UTI</span>
                 </div>
               </td>
             </tr>
@@ -80,16 +85,29 @@ import { computed, onMounted } from 'vue';
 import UiButton from '../components/ui/Button.vue';
 import UiBadge from '../components/ui/Badge.vue';
 import { useBedsStore } from '../stores/beds';
+import { useRoleStore } from '../stores/role';
+import { useToast } from 'vue-toastification';
 
 const bedsStore = useBedsStore();
+const roleStore = useRoleStore();
+const toast = useToast();
 
 onMounted(() => {
   bedsStore.load();
 });
 
+const isIcu = computed(() => roleStore.role === 'ICU');
 const totalBeds = computed(() => bedsStore.beds.length);
 const occupiedBeds = computed(() => bedsStore.beds.filter(b => b.occupancy_status === 'OCUPADO').length);
 const reservedBeds = computed(() =>
   bedsStore.beds.filter(b => b.occupancy_status === 'LIVRE' && b.availability_status === 'NAO_DISPONIVEL').length
 );
+
+const handleToggleAvailability = async (bedId: number, nextAvailability: boolean) => {
+  if (!isIcu.value) {
+    toast.error('Ação permitida apenas para o perfil UTI.');
+    return;
+  }
+  await bedsStore.toggleAvailability(bedId, nextAvailability);
+};
 </script>
