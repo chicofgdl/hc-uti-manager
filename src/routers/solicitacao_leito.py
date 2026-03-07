@@ -36,6 +36,8 @@ async def criar_solicitacao(
             "especialidade": especialidade,
         })
         return {"message": "Solicitação criada com sucesso"}
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("ERROR in criar_solicitacao")
         raise HTTPException(status_code=500, detail=str(e))
@@ -49,6 +51,8 @@ async def listar_todas(
 ):
     try:
         return await controller.listar_todas()
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("ERROR in listar_todas")
         raise HTTPException(status_code=500, detail=str(e))
@@ -62,6 +66,8 @@ async def listar_pendentes(
 ):
     try:
         return await controller.listar_pendentes()
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("ERROR in listar_pendentes")
         raise HTTPException(status_code=500, detail=str(e))
@@ -78,6 +84,8 @@ async def aprovar(
     try:
         await controller.aprovar(id, data["lto_lto_id"])
         return {"message": "Solicitação aprovada"}
+    except HTTPException:
+        raise
     except ValueError as e:
         logging.warning("Invalid request in aprovar: %s", e)
         raise HTTPException(status_code=404, detail=str(e))
@@ -97,6 +105,8 @@ async def negar(
     try:
         await controller.negar(id, data.get("motivo") if data else None)
         return {"message": "Solicitação negada"}
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("ERROR in negar")
         raise HTTPException(status_code=500, detail=str(e))
@@ -117,6 +127,8 @@ async def cancelar(
             motivo=data.get("motivo") if data else None
         )
         return {"message": "Solicitação cancelada"}
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("ERROR in cancelar")
         raise HTTPException(status_code=500, detail=str(e))
