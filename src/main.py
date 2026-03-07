@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 import os
@@ -61,6 +62,26 @@ app = FastAPI(
     description="Aplicação Backend monolítica (API REST) em Python/FastAPI, com foco em acesso e agregação de dados heterogêneos.",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# CORS para desenvolvimento local (Vite + backend) e uso do API tester.
+_default_cors_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+_configured_cors_origins = os.getenv("CORS_ALLOW_ORIGINS", ",".join(_default_cors_origins))
+_cors_origins = [origin.strip() for origin in _configured_cors_origins.split(",") if origin.strip()]
+if not _cors_origins:
+    _cors_origins = _default_cors_origins
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Serve o frontend Vue 3 empacotado
