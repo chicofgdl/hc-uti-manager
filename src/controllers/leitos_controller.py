@@ -33,3 +33,6 @@ class LeitosController:
     
     async def listar_leitos(self) -> List[Dict[str, Any]]:
         return await self.provider.listar_leitos()
+    
+    async def quantidade_disponiveis(self) -> int:
+        return await self.provider.contar_leitos_disponiveis()

@@ -14,7 +14,7 @@ class PacienteCsvProvider(PacienteProviderInterface):
         self._last_modified: float = 0.0
         self._lock = asyncio.Lock()
 
-    async def _ler_csv(self) -> pd.DataFrame:
+    def _ler_csv(self) -> pd.DataFrame:
         df = pd.read_csv(self.csv_path)
         df = df.where(pd.notnull(df), None)
         return df

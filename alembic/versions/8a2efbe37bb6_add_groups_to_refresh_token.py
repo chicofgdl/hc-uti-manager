@@ -19,8 +19,31 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Tabela já passa a conter coluna groups na migration anterior. Nada a fazer.
-    pass
+    """Upgrade schema."""
+    # Make drops idempotent to avoid failing when indexes/tables are already absent
+    try:
+        op.execute("DROP INDEX IF EXISTS ix_refresh_tokens_id")
+        op.execute("DROP INDEX IF EXISTS ix_refresh_tokens_token")
+        op.execute("DROP INDEX IF EXISTS ix_refresh_tokens_user_id")
+        op.execute("DROP TABLE IF EXISTS refresh_tokens CASCADE")
+    except Exception:
+        # If DB doesn't support IF EXISTS, fallback to safe alembic operations
+        try:
+            op.drop_index(op.f('ix_refresh_tokens_id'), table_name='refresh_tokens')
+        except Exception:
+            pass
+        try:
+            op.drop_index(op.f('ix_refresh_tokens_token'), table_name='refresh_tokens')
+        except Exception:
+            pass
+        try:
+            op.drop_index(op.f('ix_refresh_tokens_user_id'), table_name='refresh_tokens')
+        except Exception:
+            pass
+        try:
+            op.drop_table('refresh_tokens')
+        except Exception:
+            pass
 
 
 def downgrade() -> None:

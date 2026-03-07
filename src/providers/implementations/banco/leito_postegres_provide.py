@@ -196,3 +196,13 @@ class LeitoBancoBProvider:
 
         result = await self.session.execute(query)
         return [dict(row) for row in result.mappings().all()]
+    
+    async def contar_leitos_disponiveis(self) -> int:
+        query = text("""
+            SELECT COUNT(*) 
+            FROM leitos
+            WHERE alta_solicitada = TRUE
+        """)
+
+        result = await self.session.execute(query)
+        return result.scalar() or 0
