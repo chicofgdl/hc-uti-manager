@@ -103,6 +103,11 @@ const activeItems = [
     to: '/historico',
     icon: History,
   },
+  {
+    label: 'Teste API',
+    to: '/teste-api',
+    icon: FileText,
+  },
 ];
 
 const disabledItems: Array<{ label: string; icon: any }> = [];

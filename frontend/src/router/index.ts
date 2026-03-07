@@ -11,6 +11,7 @@ import Altas from '../views/Altas.vue';
 import Alertas from '../views/Alertas.vue';
 import Indicadores from '../views/Indicadores.vue';
 import Historico from '../views/Historico.vue';
+import ApiYamlTester from '../views/ApiYamlTester.vue';
 
 const routes = [
   {
@@ -72,6 +73,12 @@ const routes = [
     name: 'Historico',
     component: Historico,
     meta: { title: 'Historico de Acoes' },
+  },
+  {
+    path: '/teste-api',
+    name: 'ApiTeste',
+    component: ApiYamlTester,
+    meta: { title: 'Teste das Rotas do YAML' },
   },
 ];
 
