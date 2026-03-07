@@ -6,10 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 
 from fastapi.security import OAuth2PasswordRequestForm
 
-from starlette.concurrency import run_in_threadpool
-
-
-
 from auth.auth import auth_handler, JWT_EXP_HOURS, REFRESH_TOKEN_EXP_DAYS
 
 from resources.database import get_app_db_session
@@ -110,12 +106,12 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
 
     token_obj = await auth_handler.verify_refresh_token(refresh_token, db)
 
-    # Re-fetch full user data to ensure the new token has all AD attributes
-    try:
-        user_full_info = await run_in_threadpool(auth_handler.authenticate_user, token_obj.user_id, None) # Pass None for password as we are re-authenticating
-    except HTTPException as e:
-        # Handle cases where the user might not exist in AD anymore
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Failed to re-authenticate user: {e.detail}")
+    # O refresh token já guarda o identificador e grupos do usuário.
+    # Evita reautenticação LDAP/local aqui para manter o refresh estável.
+    user_full_info = {
+        "username": token_obj.user_id,
+        "groups": token_obj.groups or [],
+    }
 
     # Invalidate the old refresh token (optional: implement rotation for better security)
     await auth_handler.invalidate_refresh_token(refresh_token, db)
