@@ -22,6 +22,8 @@ Este guia contem os passos detalhados para configurar e executar os ambientes de
 
 - Backend em `http://127.0.0.1:8000` e frontend em `http://127.0.0.1:5173`.
 - Use esta opcao se quiser um ambiente pronto rapidamente; lembre-se de revisar `.env` para conectar ao seu AD ou banco real.
+- Para desenvolvimento local sem AD, deixe `AD_URL` e `AD_BASEDN` comentados no `.env`.
+- Com AD comentado, use as contas locais `admin/admin`, `uti/uti` e `cirurgia/cirurgia`.
 
 ## Opcao B: Ambiente local manual
 
@@ -49,6 +51,12 @@ cp .env.example .env
 # Dica: Para desenvolvimento offline, voce pode deixar as variaveis de AD e POSTGRES comentadas.
 nano .env
 ```
+
+Contas locais de desenvolvimento com AD comentado:
+
+- `admin / admin`: autenticacao e rotas administrativas.
+- `uti / uti`: fluxos da UTI.
+- `cirurgia / cirurgia`: fluxos do centro cirurgico.
 
 ### 2. Configuracao do Frontend
 
