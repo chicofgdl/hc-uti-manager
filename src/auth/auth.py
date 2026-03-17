@@ -2,6 +2,7 @@ import os
 import jwt
 import re
 import secrets
+import logging
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from fastapi import Depends, HTTPException, status
@@ -191,11 +192,16 @@ class AuthHandler:
         self.local_provider = None
 
     async def authenticate_user(self, username, password, session=None):
+        last_http_error: HTTPException | None = None
         # Try providers in order
         for provider in self.providers:
             try:
                 return await provider.authenticate_user(username, password)
-            except HTTPException:
+            except HTTPException as exc:
+                last_http_error = exc
+                continue
+            except Exception:
+                logging.exception("Unexpected error in auth provider %s", type(provider).__name__)
                 continue
         
         # Try local users
@@ -203,9 +209,14 @@ class AuthHandler:
             local_provider = LocalAuthProvider(session)
             try:
                 return await local_provider.authenticate_user(username, password)
-            except HTTPException:
-                pass
+            except HTTPException as exc:
+                last_http_error = exc
+            except Exception:
+                # Avoid leaking DB/internal failures as 500 on login.
+                logging.exception("Unexpected error in local auth provider")
         
+        if last_http_error and last_http_error.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN):
+            raise last_http_error
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):

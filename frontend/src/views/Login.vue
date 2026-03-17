@@ -110,7 +110,7 @@
             </div>
 
             <p class="text-center text-sm text-slate-500">
-              Use qualquer usuario e senha para demonstracao
+              Contas locais de demonstracao: admin/admin, uti/uti, cirurgia/cirurgia
             </p>
           </form>
 
@@ -156,7 +156,7 @@ const loginSchema = z.object({
   username: z.string().trim()
     .min(3, 'Informe um usuario valido (minimo de 3 caracteres)')
     .regex(/^\S+$/, 'Usuario nao deve conter espacos'),
-  password: z.string().min(4, 'Senha deve ter pelo menos 4 caracteres'),
+  password: z.string().min(3, 'Senha deve ter pelo menos 3 caracteres'),
 });
 
 const togglePasswordVisibility = () => {
