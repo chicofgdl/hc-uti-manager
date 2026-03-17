@@ -45,7 +45,7 @@ Documentar a arquitetura atual do fluxo de leitos/reservas/transferências com p
   - Aceite pode escolher leito explícito ou automático.
   - Negação/cancelamento limpam vínculo de leito.
 
-### Transferência (CC -> UTI)
+### Transferência (Centro Cirúrgico -> UTI)
 - Estados:
   - `PENDENTE` -> `ACEITA`
   - `PENDENTE` -> `NEGADA`

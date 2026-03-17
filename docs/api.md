@@ -13,7 +13,7 @@
 ### Leitos (UTI)
 | Método | URL | Descrição |
 | --- | --- | --- |
-| `GET` | `/api/icu/beds` | Lista todos os leitos do fluxo UTI/CC |
+| `GET` | `/api/icu/beds` | Lista todos os leitos do fluxo UTI/Centro Cirúrgico |
 | `GET` | `/api/icu/beds/available-count` | Quantidade de leitos disponíveis para reserva |
 | `PATCH` | `/api/icu/beds/{bed_id}/availability` | Disponibiliza ou cancela disponibilização de leito |
 
@@ -27,11 +27,11 @@ Payload:
 ### Reservas
 | Método | URL | Descrição |
 | --- | --- | --- |
-| `POST` | `/api/surgical-center/reservations` | CC solicita reserva |
-| `GET` | `/api/surgical-center/reservations` | Lista reservas (visão CC) |
+| `POST` | `/api/surgical-center/reservations` | Centro Cirúrgico solicita reserva |
+| `GET` | `/api/surgical-center/reservations` | Lista reservas (visão Centro Cirúrgico) |
 | `GET` | `/api/icu/reservations` | Lista reservas (visão UTI) |
 | `PATCH` | `/api/icu/reservations/{id}/decision` | UTI aceita/nega reserva |
-| `PATCH` | `/api/surgical-center/reservations/{id}/cancel` | CC cancela solicitação/reserva |
+| `PATCH` | `/api/surgical-center/reservations/{id}/cancel` | Centro Cirúrgico cancela solicitação/reserva |
 | `PATCH` | `/api/icu/reservations/{id}/cancel` | UTI cancela solicitação/reserva |
 
 Payload criação:
@@ -51,11 +51,11 @@ Payload decisão:
 }
 ```
 
-### Transferências (CC -> UTI)
+### Transferências (Centro Cirúrgico -> UTI)
 | Método | URL | Descrição |
 | --- | --- | --- |
-| `POST` | `/api/surgical-center/transfers` | CC solicita transferência |
-| `GET` | `/api/surgical-center/transfers` | Lista transferências (visão CC) |
+| `POST` | `/api/surgical-center/transfers` | Centro Cirúrgico solicita transferência |
+| `GET` | `/api/surgical-center/transfers` | Lista transferências (visão Centro Cirúrgico) |
 | `GET` | `/api/icu/transfers` | Lista transferências (visão UTI) |
 | `PATCH` | `/api/icu/transfers/{id}/decision` | UTI aceita/nega transferência |
 
