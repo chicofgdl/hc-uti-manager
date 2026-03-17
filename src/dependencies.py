@@ -98,8 +98,16 @@ def _get_leito_csv_provider() -> LeitoProviderInterface:
 
 def get_leito_provider() -> Callable[..., LeitoProviderInterface]:
     """Return dependency function for leito provider based on env vars."""
+    explicit = (os.getenv("LEITO_PROVIDER_TYPE") or "").strip().upper()
+    if explicit == "POSTGRES":
+        logging.info("Selected leito provider strategy from LEITO_PROVIDER_TYPE: postgres")
+        return _get_leito_banco_provider
+    if explicit == "CSV":
+        logging.info("Selected leito provider strategy from LEITO_PROVIDER_TYPE: csv")
+        return _get_leito_csv_provider
+
     selected = "banco" if os.getenv("POSTGRES_DSN") else "csv"
-    logging.info("Selected leito provider strategy: %s", selected)
+    logging.info("Selected leito provider strategy by fallback (POSTGRES_DSN presence): %s", selected)
     if os.getenv("POSTGRES_DSN"):
         return _get_leito_banco_provider
     return _get_leito_csv_provider
@@ -115,6 +123,22 @@ def get_leito_controller(
         logging.exception("Error constructing LeitosController")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail={"error": "LeitosController construction failed"})
+
+# --- Care (Beds/Reservations/Transfers/Notifications) ------------------------
+async def get_care_provider() -> CareProvider:
+    leitos_csv = _resolve_csv_path("LEITOS_CSV_PATH", "data/leitos.csv")
+    pacientes_csv = _resolve_csv_path("PACIENTE_CSV_PATH", "data/pacientes.csv")
+    if not os.path.isfile(leitos_csv):
+        logging.warning("care leitos CSV not found at %s", leitos_csv)
+    if not os.path.isfile(pacientes_csv):
+        logging.warning("care pacientes CSV not found at %s", pacientes_csv)
+    return CareProvider(leitos_csv_path=leitos_csv, pacientes_csv_path=pacientes_csv)
+
+
+def get_care_controller(
+    provider: CareProvider = Depends(get_care_provider),
+) -> CareController:
+    return CareController(provider)
     
 # --- Notificacao: provider + controller wiring ---------------------------------
 from controllers.notificacao_controller import NotificacaoController

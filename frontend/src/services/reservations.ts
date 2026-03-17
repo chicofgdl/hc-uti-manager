@@ -1,8 +1,12 @@
 import api from './api';
-import { Reservation } from '../types/care';
+import { Reservation, Role } from '../types/care';
 
-export async function listReservations(): Promise<Reservation[]> {
-  const { data } = await api.get('/api/icu/reservations');
+export async function listReservations(role: Role): Promise<Reservation[]> {
+  const endpoint =
+    role === 'SURGICAL_CENTER'
+      ? '/api/surgical-center/reservations'
+      : '/api/icu/reservations';
+  const { data } = await api.get(endpoint);
   return data;
 }
 

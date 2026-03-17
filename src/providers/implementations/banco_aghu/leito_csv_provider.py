@@ -2,6 +2,7 @@ import pandas as pd
 import asyncio
 from datetime import datetime, date
 from typing import List, Dict, Any
+from fastapi import HTTPException, status
 from providers.interfaces.leito_provider_interface import LeitoProviderInterface
 
 class LeitoCsvProvider(LeitoProviderInterface):
@@ -70,6 +71,31 @@ class LeitoCsvProvider(LeitoProviderInterface):
             if val is not None and (not (isinstance(val, float) and pd.isna(val))):
                 return val
         return default
+
+    async def _persist_leitos(self) -> None:
+        await asyncio.to_thread(self._leitos_df.to_csv, self.leitos_csv, index=False, encoding="utf-8-sig")
+
+    def _ensure_column(self, column_name: str) -> None:
+        if column_name not in self._leitos_df.columns:
+            self._leitos_df[column_name] = pd.NA
+
+    def _set_first_column_value(self, index: int, candidates: List[str], value: Any) -> None:
+        target = next((col for col in candidates if col in self._leitos_df.columns), candidates[0])
+        self._ensure_column(target)
+        self._leitos_df.at[index, target] = value
+
+    def _is_marked_for_reservation(self, row: pd.Series) -> bool:
+        bed_status = str(self._pick(row, ["status", "Situação do Leito"]) or "").strip().lower()
+        operation = str(self._pick(row, ["Operação", "operacao"]) or "").strip().upper()
+        return bed_status == "alta" or operation == "ALTA"
+
+    def _find_bed_index(self, lto_lto_id: str) -> int | None:
+        target = str(lto_lto_id).strip()
+        for index, row in self._leitos_df.iterrows():
+            bed_code = str(self._pick(row, ["leito_numero", "Cód Leito", "CódLeito", "Cód-Leito"]) or "").strip()
+            if bed_code == target:
+                return int(index)
+        return None
 
     async def listar_leitos(self) -> List[Dict[str, Any]]:
         await self._carregar_csvs()
@@ -186,9 +212,67 @@ class LeitoCsvProvider(LeitoProviderInterface):
         return resultado
 
     async def solicitar_alta(self, leito_id: int) -> None:
-        """CSV provider cannot persist changes; this is a no-op with a warning."""
-        print(f"WARNING: solicitar_alta called on CSV provider for leito_id={leito_id} (no-op)")
+        await self._carregar_csvs()
+        index = self._find_bed_index(str(leito_id))
+        if index is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leito não encontrado")
+
+        self._set_first_column_value(index, ["Operação", "operacao"], "ALTA")
+        self._set_first_column_value(index, ["Data Última Atualização"], datetime.utcnow().isoformat())
+        await self._persist_leitos()
 
     async def cancelar_alta(self, leito_id: int) -> None:
-        """CSV provider cannot persist changes; this is a no-op with a warning."""
-        print(f"WARNING: cancelar_alta called on CSV provider for leito_id={leito_id} (no-op)")
+        await self._carregar_csvs()
+        index = self._find_bed_index(str(leito_id))
+        if index is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leito não encontrado")
+
+        self._set_first_column_value(index, ["Operação", "operacao"], "")
+        self._set_first_column_value(index, ["proximo_prontuario", "prontuario_proximo"], pd.NA)
+        self._set_first_column_value(index, ["idade_proximo", "proximo_idade"], pd.NA)
+        self._set_first_column_value(index, ["especialidade_proximo", "proximo_especialidade"], pd.NA)
+        self._set_first_column_value(index, ["Data Última Atualização"], datetime.utcnow().isoformat())
+        await self._persist_leitos()
+
+    async def reservar_leito(
+        self,
+        lto_lto_id: str,
+        prontuario: int,
+        idade: int,
+        especialidade: str,
+    ) -> None:
+        await self._carregar_csvs()
+        index = self._find_bed_index(lto_lto_id)
+        if index is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leito não encontrado")
+
+        row = self._leitos_df.loc[index]
+        if not self._is_marked_for_reservation(row):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Leito não possui alta solicitada",
+            )
+
+        next_patient = self._pick(row, ["proximo_prontuario", "prontuario_proximo"])
+        if next_patient is not None and str(next_patient).strip() != "":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Leito já possui paciente reservado",
+            )
+
+        self._set_first_column_value(index, ["proximo_prontuario", "prontuario_proximo"], int(prontuario))
+        self._set_first_column_value(index, ["idade_proximo", "proximo_idade"], int(idade))
+        self._set_first_column_value(index, ["especialidade_proximo", "proximo_especialidade"], especialidade)
+        self._set_first_column_value(index, ["Data Última Atualização"], datetime.utcnow().isoformat())
+        await self._persist_leitos()
+
+    async def contar_leitos_disponiveis(self) -> int:
+        await self._carregar_csvs()
+        count = 0
+        for _, row in self._leitos_df.iterrows():
+            if not self._is_marked_for_reservation(row):
+                continue
+            next_patient = self._pick(row, ["proximo_prontuario", "prontuario_proximo"])
+            if next_patient is None or str(next_patient).strip() == "":
+                count += 1
+        return count

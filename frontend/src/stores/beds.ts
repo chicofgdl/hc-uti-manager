@@ -17,9 +17,8 @@ export const useBedsStore = defineStore('beds', () => {
   }
 
   async function toggleAvailability(bedId: number, available: boolean) {
-    const bed = await updateAvailability(bedId, available);
-    beds.value = beds.value.map(b => (b.id === bed.id ? bed : b));
-    availableCount.value = await fetchAvailableCount();
+    await updateAvailability(bedId, available);
+    await load();
     toast.success(available ? 'Leito disponibilizado para reserva.' : 'Leito marcado como não disponível.');
   }
 

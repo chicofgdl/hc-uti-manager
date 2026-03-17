@@ -126,6 +126,27 @@ async def test_bed_availability_flow_updates_count_and_listing(client):
 
 
 @pytest.mark.asyncio
+async def test_create_reservation_persists_csv_state(client, test_app):
+    created = await client.post(
+        "/api/surgical-center/reservations",
+        json={"patientId": "77001", "notes": "Necessita monitoramento intensivo"},
+    )
+    assert created.status_code == 201
+    created_payload = created.json()
+    assert created_payload["status"] == "PENDENTE"
+
+    pacientes_rows = _read_csv(test_app.state.test_pacientes_csv)
+    paciente_77001 = _patient_row(pacientes_rows, "77001")
+    assert "\"status\": \"PENDENTE\"" in paciente_77001["care_reservations_json"]
+    assert f"\"id\": {created_payload['id']}" in paciente_77001["care_reservations_json"]
+
+    leitos_rows = _read_csv(test_app.state.test_leitos_csv)
+    meta_row = leitos_rows[0]
+    assert meta_row["care_meta_next_reservation_id"] == str(created_payload["id"] + 1)
+    assert "RESERVA_CRIADA" in meta_row["care_meta_notifications_json"]
+
+
+@pytest.mark.asyncio
 async def test_accept_reservation_blocks_double_allocation_and_updates_csv(client, test_app):
     r1 = await client.post("/api/surgical-center/reservations", json={"patientId": "77001"})
     r2 = await client.post("/api/surgical-center/reservations", json={"patientId": "77002"})
