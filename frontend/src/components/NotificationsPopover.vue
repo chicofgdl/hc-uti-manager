@@ -22,7 +22,7 @@
         class="absolute right-0 mt-3 w-80 origin-top-right rounded-2xl border border-slate-200 bg-white shadow-xl"
       >
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h3 class="font-semibold text-slate-900">Notificacoes ({{ roleStore.role }})</h3>
+          <h3 class="font-semibold text-slate-900">Notificacoes</h3>
           <button
             class="text-xs font-semibold text-blue-600 hover:underline"
             @click="handleMarkAll"

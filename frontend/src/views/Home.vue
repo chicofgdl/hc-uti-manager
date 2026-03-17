@@ -8,7 +8,7 @@
         </UiButton>
       </div>
       <p v-if="!isIcu" class="text-sm text-amber-700">
-        Perfil ativo: CC. Visualização em modo leitura; para disponibilizar/bloquear leitos, troque para UTI.
+        A conta atual não possui permissão UTI. Esta tela fica em modo leitura.
       </p>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -69,7 +69,7 @@
                   >
                     {{ bed.availability_status === 'DISPONIVEL' ? 'Bloquear reserva' : 'Liberar reserva' }}
                   </UiButton>
-                  <span v-else class="text-xs text-slate-500">Somente UTI</span>
+                  <span v-else class="text-xs text-slate-500">Disponível apenas para conta UTI</span>
                 </div>
               </td>
             </tr>
@@ -105,7 +105,7 @@ const reservedBeds = computed(() =>
 
 const handleToggleAvailability = async (bedId: number, nextAvailability: boolean) => {
   if (!isIcu.value) {
-    toast.error('Ação permitida apenas para o perfil UTI.');
+    toast.error('Ação permitida apenas para a conta UTI.');
     return;
   }
   await bedsStore.toggleAvailability(bedId, nextAvailability);

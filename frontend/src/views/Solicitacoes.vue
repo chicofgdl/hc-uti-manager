@@ -4,7 +4,7 @@
       <div class="space-y-1">
         <h2 class="text-3xl font-bold text-slate-900">Reservas de Leito</h2>
         <p class="text-sm text-slate-600">
-          CC solicita, UTI decide. Use o seletor de perfil no topo para ver notificações do papel correspondente.
+          Centro Cirúrgico solicita e UTI decide. As permissões desta tela seguem a conta logada.
         </p>
         <p class="text-sm text-amber-700">{{ profileHint }}</p>
       </div>
@@ -21,13 +21,29 @@
           <form class="space-y-3" @submit.prevent="handleCreate">
             <label class="block text-sm font-medium text-slate-700">
               Prontuário do paciente
-              <input
+              <select
                 v-model="form.patientId"
                 required
                 class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Ex: 77001"
-              />
+              >
+                <option value="" disabled>
+                  {{ loadingPatients ? 'Carregando pacientes...' : 'Selecione um prontuário' }}
+                </option>
+                <option
+                  v-for="patient in patientOptions"
+                  :key="patient.id"
+                  :value="patient.id"
+                >
+                  {{ patient.label }}
+                </option>
+              </select>
             </label>
+            <p
+              v-if="!loadingPatients && patientOptions.length === 0"
+              class="text-xs text-amber-700"
+            >
+              Nenhum paciente disponível para seleção.
+            </p>
             <label class="block text-sm font-medium text-slate-700">
               Observação
               <textarea
@@ -43,7 +59,7 @@
           </form>
         </template>
         <div v-else class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-          Solicitação de reserva é permitida apenas para o perfil CC.
+          Solicitação de reserva é permitida apenas para a conta de cirurgia.
         </div>
       </div>
 
@@ -56,7 +72,7 @@
             </div>
           </div>
           <div v-if="!isIcu" class="px-4 py-6 text-sm text-slate-500">
-            Troque para o perfil UTI para aceitar ou negar solicitações.
+            Entre com uma conta UTI para aceitar ou negar solicitações.
           </div>
           <div v-else-if="pendingReservations.length === 0" class="px-4 py-6 text-sm text-slate-500">
             Nenhuma solicitação pendente.
@@ -125,30 +141,96 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import UiBadge from '../components/ui/Badge.vue';
 import UiButton from '../components/ui/Button.vue';
 import { useBedsStore } from '../stores/beds';
 import { useReservationsStore } from '../stores/reservations';
 import { useRoleStore } from '../stores/role';
 import { useToast } from 'vue-toastification';
+import api from '../services/api';
 
 const bedsStore = useBedsStore();
 const reservationsStore = useReservationsStore();
 const roleStore = useRoleStore();
 const toast = useToast();
 
+type PatientOption = {
+  id: string;
+  label: string;
+};
+
 const form = reactive({
   patientId: '',
   notes: '',
 });
 
+const patientOptions = ref<PatientOption[]>([]);
+const loadingPatients = ref(false);
 const selectedBed: Record<number, number | null> = reactive({});
 
-onMounted(() => {
+const reload = () => {
   bedsStore.load();
   reservationsStore.load();
+};
+
+const patientIdCandidates = ['Prontuário', 'Prontuario', 'PRONTUARIO', 'codigo', 'Código', 'external_id'] as const;
+
+const normalizePatientId = (raw: Record<string, unknown>): string => {
+  for (const key of patientIdCandidates) {
+    const value = raw[key];
+    if (value === null || value === undefined) continue;
+    const normalized = String(value).trim();
+    if (normalized.length > 0) return normalized;
+  }
+  return '';
+};
+
+const buildPatientLabel = (raw: Record<string, unknown>, id: string): string => {
+  const specialty = String(raw['Especialidade'] ?? '').trim();
+  if (specialty) {
+    return `${id} - ${specialty}`;
+  }
+  return id;
+};
+
+const loadPatientOptions = async () => {
+  loadingPatients.value = true;
+  try {
+    const { data } = await api.get('/api/pacientes');
+    const rows: Array<Record<string, unknown>> = Array.isArray(data) ? data : [];
+    patientOptions.value = rows
+      .map((row) => {
+        const id = normalizePatientId(row);
+        if (!id) return null;
+        return {
+          id,
+          label: buildPatientLabel(row, id),
+        };
+      })
+      .filter((option): option is PatientOption => option !== null);
+    if (!patientOptions.value.some((patient) => patient.id === form.patientId)) {
+      form.patientId = '';
+    }
+  } catch {
+    patientOptions.value = [];
+    toast.error('Não foi possível carregar pacientes para seleção.');
+  } finally {
+    loadingPatients.value = false;
+  }
+};
+
+onMounted(() => {
+  reload();
+  loadPatientOptions();
 });
+
+watch(
+  () => roleStore.role,
+  () => {
+    reload();
+  }
+);
 
 const pendingReservations = computed(() => reservationsStore.pending);
 const allReservations = computed(() => reservationsStore.reservations);
@@ -156,8 +238,8 @@ const isIcu = computed(() => roleStore.role === 'ICU');
 const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
 const profileHint = computed(() => (
   isCc.value
-    ? 'Perfil CC ativo: você pode solicitar e cancelar suas reservas.'
-    : 'Perfil UTI ativo: você pode aceitar, negar e cancelar reservas ativas.'
+    ? 'Conta de cirurgia ativa: você pode solicitar e cancelar reservas.'
+    : 'Conta UTI ativa: você pode aceitar, negar e cancelar reservas ativas.'
 ));
 
 const statusClass = (status: string) => {
@@ -175,7 +257,11 @@ const statusClass = (status: string) => {
 
 const handleCreate = async () => {
   if (!isCc.value) {
-    toast.error('Ação permitida apenas para o perfil CC.');
+    toast.error('Ação permitida apenas para a conta de cirurgia.');
+    return;
+  }
+  if (!form.patientId) {
+    toast.error('Selecione um prontuário.');
     return;
   }
   try {
@@ -192,12 +278,11 @@ const handleCreate = async () => {
 
 const decide = async (id: number, decision: 'ACCEPT' | 'DENY') => {
   if (!isIcu.value) {
-    toast.error('Ação permitida apenas para o perfil UTI.');
+    toast.error('Ação permitida apenas para a conta UTI.');
     return;
   }
   try {
     await reservationsStore.decide(id, decision, selectedBed[id] || null);
-    bedsStore.load();
   } catch (error: any) {
     toast.error(error.response?.data?.detail || 'Erro ao decidir reserva.');
   }
@@ -210,10 +295,9 @@ const cancel = async (id: number) => {
     } else if (isIcu.value) {
       await reservationsStore.cancelByIcu(id);
     } else {
-      toast.error('Perfil inválido para cancelar reserva.');
+      toast.error('Entre com uma conta UTI ou cirurgia antes de cancelar a reserva.');
       return;
     }
-    bedsStore.load();
   } catch (error: any) {
     toast.error(error.response?.data?.detail || 'Erro ao cancelar.');
   }

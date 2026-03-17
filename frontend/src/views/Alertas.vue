@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-3xl font-bold text-slate-900">Alertas e notificações</h2>
-        <p class="text-sm text-slate-600">Exibindo notificações do papel {{ roleStore.role }}.</p>
+        <p class="text-sm text-slate-600">Exibindo notificações compatíveis com a conta logada.</p>
       </div>
       <div class="flex gap-2">
         <UiButton variant="outline" size="sm" @click="reload">Recarregar</UiButton>

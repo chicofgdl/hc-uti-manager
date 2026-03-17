@@ -2,7 +2,7 @@
   <section class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="space-y-1">
-        <h2 class="text-3xl font-bold text-slate-900">Transferências CC → UTI</h2>
+        <h2 class="text-3xl font-bold text-slate-900">Transferências Centro Cirúrgico → UTI</h2>
         <p class="text-sm text-slate-600">Solicite transferência após reserva aceita ou selecione um leito livre.</p>
         <p class="text-sm text-amber-700">{{ profileHint }}</p>
       </div>
@@ -12,7 +12,7 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <template v-if="isCc">
-          <h3 class="text-lg font-semibold text-slate-900 mb-2">Solicitar transferência (CC)</h3>
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">Solicitar transferência (Centro Cirúrgico)</h3>
           <form class="space-y-3" @submit.prevent="handleCreate">
             <label class="block text-sm font-medium text-slate-700">
               Prontuário do paciente
@@ -53,7 +53,7 @@
           </form>
         </template>
         <div v-else class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-          Solicitação de transferência é permitida apenas para o perfil CC.
+          Solicitação de transferência é permitida apenas para a conta de cirurgia.
         </div>
       </div>
 
@@ -66,7 +66,7 @@
             </div>
           </div>
           <div v-if="!isIcu" class="px-4 py-6 text-sm text-slate-500">
-            Troque para o perfil UTI para aceitar ou negar transferências.
+            Entre com uma conta UTI para aceitar ou negar transferências.
           </div>
           <div v-else-if="pendingTransfers.length === 0" class="px-4 py-6 text-sm text-slate-500">
             Nenhuma transferência pendente.
@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue';
+import { computed, onMounted, reactive, watch } from 'vue';
 import UiButton from '../components/ui/Button.vue';
 import UiBadge from '../components/ui/Badge.vue';
 import { useTransfersStore } from '../stores/transfers';
@@ -142,6 +142,13 @@ onMounted(() => {
   reload();
 });
 
+watch(
+  () => roleStore.role,
+  () => {
+    reload();
+  }
+);
+
 const reload = () => {
   transfersStore.load();
   bedsStore.load();
@@ -154,8 +161,8 @@ const isIcu = computed(() => roleStore.role === 'ICU');
 const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
 const profileHint = computed(() => (
   isCc.value
-    ? 'Perfil CC ativo: você pode solicitar transferências.'
-    : 'Perfil UTI ativo: você pode decidir transferências pendentes.'
+    ? 'Conta de cirurgia ativa: você pode solicitar transferências.'
+    : 'Conta UTI ativa: você pode decidir transferências pendentes.'
 ));
 
 const statusClass = (status: string) => {
@@ -173,7 +180,7 @@ const statusClass = (status: string) => {
 
 const handleCreate = async () => {
   if (!isCc.value) {
-    toast.error('Ação permitida apenas para o perfil CC.');
+    toast.error('Ação permitida apenas para a conta de cirurgia.');
     return;
   }
   try {
@@ -194,12 +201,11 @@ const handleCreate = async () => {
 
 const decide = async (id: number, decision: 'ACCEPT' | 'DENY') => {
   if (!isIcu.value) {
-    toast.error('Ação permitida apenas para o perfil UTI.');
+    toast.error('Ação permitida apenas para a conta UTI.');
     return;
   }
   try {
     await transfersStore.decide(id, decision, selectedBed[id] || null);
-    bedsStore.load();
   } catch (error: any) {
     toast.error(error.response?.data?.detail || 'Erro ao decidir transferência.');
   }

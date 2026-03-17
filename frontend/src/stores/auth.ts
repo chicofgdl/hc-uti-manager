@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '../services/api';
+import { useRoleStore } from './role';
 
 // Tipagem correta para suportar tanto MockAuth quanto Active Directory
 interface User {
@@ -17,6 +18,7 @@ interface User {
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('accessToken') || null);
+  const roleStore = useRoleStore();
   let initialUser: User | null = null;
   try {
     const storedUser = localStorage.getItem('user');
@@ -25,6 +27,9 @@ export const useAuthStore = defineStore('auth', () => {
     console.warn("Could not parse stored user", error);
   }
   const user = ref<User | null>(initialUser);
+  if (initialUser?.groups) {
+    roleStore.syncFromGroups(initialUser.groups);
+  }
 
   const isAuthenticated = computed(() => !!accessToken.value);
   const isAdmin = computed(() => {
@@ -42,24 +47,23 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     user.value = null;
+    roleStore.reset();
   }
 
   function setUser(userData: User | null) {
     user.value = userData;
     if (userData) {
       localStorage.setItem('user', JSON.stringify(userData));
+      roleStore.syncFromGroups(userData.groups || []);
     } else {
       localStorage.removeItem('user');
+      roleStore.reset();
     }
   }
 
   async function fetchUser() {
     if (!accessToken.value) {
       setUser(null);
-      return;
-    }
-    if (accessToken.value.startsWith('mock-token-')) {
-      // Skip remote fetch when using mock auth so the session survives refresh
       return;
     }
     try {
@@ -86,18 +90,8 @@ export const useAuthStore = defineStore('auth', () => {
       setToken(data.access_token);
       await fetchUser();
     } catch (error) {
-      console.warn("Using mock login (fallback). Replace with real API response when available.", error);
-      const mockToken = `mock-token-${Date.now()}`;
-      setToken(mockToken);
-      setUser({
-        username,
-        groups: [],
-        givenName: [username.split('@')[0] || 'Usuario'],
-        userPrincipalName: [username],
-        title: ['Profissional de Saude'],
-        department: ['UTI'],
-        employeeNumber: ['000000'],
-      });
+      clearToken();
+      throw error;
     }
   }
 
