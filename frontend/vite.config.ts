@@ -29,6 +29,30 @@ export default defineConfig({
         target: apiProxyTarget,
         changeOrigin: true,
       },
+      '/leitos': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/solicitacoes-reserva': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/reservas': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/transferencias': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/notificacoes': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/users': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
     }
   }
 })
