@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends
 from typing import List
 
@@ -9,10 +10,9 @@ from controllers.leitos_controller import LeitosController
 
 from auth.auth import auth_handler
 
-# --- PONTO ÚNICO DE CONFIGURAÇÃO PARA ESTE ROTEADOR ---
-# Para usar o banco de dados em produção, altere esta linha para "postgres"
-STRATEGY = "csv"
-# ----------------------------------------------------
+# O contrato atual nao deve forcar CSV. A estrategia vem do ambiente e
+# assume Postgres por padrao, porque a origem oficial destes dados nao eh o CSV.
+STRATEGY = os.getenv("PACIENTE_PROVIDER_TYPE", "POSTGRES")
 
 router = APIRouter(
     prefix="/api/pacientes",
@@ -22,9 +22,7 @@ router = APIRouter(
 
 @router.get("", response_model=List[dict])
 async def listar_pacientes(
-    # A mágica acontece aqui:
-    # 1. get_paciente_provider(STRATEGY) retorna a função _get_paciente_csv_provider
-    # 2. FastAPI efetivamente executa Depends(_get_paciente_csv_provider)
+    # A estratégia do provider agora vem do ambiente, sem forçar CSV.
     provider: PacienteProviderInterface = Depends(get_paciente_provider(STRATEGY))
 ):
     """Lista todos os pacientes da fonte de dados configurada no roteador."""

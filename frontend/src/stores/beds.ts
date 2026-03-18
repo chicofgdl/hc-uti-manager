@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Bed } from '../types/care';
-import { fetchBeds, fetchAvailableCount, updateAvailability } from '../services/beds';
+import { fetchBeds, updateAvailability } from '../services/beds';
 import { useToast } from 'vue-toastification';
 
 export const useBedsStore = defineStore('beds', () => {
@@ -13,13 +13,18 @@ export const useBedsStore = defineStore('beds', () => {
 
   async function load() {
     beds.value = await fetchBeds();
-    availableCount.value = await fetchAvailableCount();
+    availableCount.value = beds.value.filter((bed) => bed.availability_status === 'DISPONIVEL').length;
   }
 
-  async function toggleAvailability(bedId: number, available: boolean) {
+  async function toggleAvailability(bedId: string, available: boolean) {
     await updateAvailability(bedId, available);
     await load();
     toast.success(available ? 'Leito disponibilizado para reserva.' : 'Leito marcado como não disponível.');
+  }
+
+  function reset() {
+    beds.value = [];
+    availableCount.value = 0;
   }
 
   return {
@@ -28,5 +33,6 @@ export const useBedsStore = defineStore('beds', () => {
     availableBeds,
     load,
     toggleAvailability,
+    reset,
   };
 });

@@ -55,7 +55,6 @@ import {
   Bed,
   FileText,
   LogOut,
-  AlertCircle,
   BarChart3,
   History,
   Lock,
@@ -87,11 +86,6 @@ const activeItems = [
     label: 'Transferências',
     to: '/altas',
     icon: LogOut,
-  },
-  {
-    label: 'Alertas',
-    to: '/alertas',
-    icon: AlertCircle,
   },
   {
     label: 'Indicadores',

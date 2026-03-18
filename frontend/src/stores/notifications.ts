@@ -1,3 +1,5 @@
+// Fora do contrato atual do YAML.
+// Este store nao deve ser reativado sem definicao explicita do backend.
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Notification, Role } from '../types/care';

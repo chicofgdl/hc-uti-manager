@@ -4,10 +4,14 @@ export type BedAvailability = 'NAO_DISPONIVEL' | 'DISPONIVEL';
 export type BedOccupancy = 'LIVRE' | 'OCUPADO';
 
 export interface Bed {
-  id: number;
+  id: string;
   code: string;
   availability_status: BedAvailability;
   occupancy_status: BedOccupancy;
+  legacy_status?: string | null;
+  alta_solicitada?: boolean;
+  current_patient_id?: string | null;
+  next_patient_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,11 +33,17 @@ export interface Reservation {
   notes?: string | null;
   preferred_datetime?: string | null;
   bed_id?: number | null;
-  requested_by: Role;
+  bed_code?: string | null;
+  requested_by?: Role;
   cancellation_reason?: string | null;
   created_at: string;
   updated_at: string;
   decided_at?: string | null;
+  prontuario_paciente?: number | null;
+  idade_paciente?: number | null;
+  especialidade_paciente?: string | null;
+  lto_lto_id?: string | null;
+  source?: 'yaml' | 'mock-local';
 }
 
 export type TransferStatus = 'PENDENTE' | 'ACEITA' | 'NEGADA' | 'CANCELADA';
@@ -44,10 +54,16 @@ export interface Transfer {
   patient: Patient;
   reservation_id?: number | null;
   bed_id?: number | null;
-  requested_by: Role;
+  bed_code?: string | null;
+  requested_by?: Role;
   created_at: string;
   updated_at: string;
   decided_at?: string | null;
+  prontuario_paciente?: number | null;
+  idade_paciente?: number | null;
+  especialidade_paciente?: string | null;
+  motivo_negacao?: string | null;
+  source?: 'yaml' | 'mock-local';
 }
 
 export type NotificationType =

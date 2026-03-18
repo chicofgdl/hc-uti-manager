@@ -1,3 +1,4 @@
+<!-- Fora do contrato atual do YAML. Tela removida da navegacao ate alinhamento com o backend. -->
 <template>
   <section class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">

@@ -8,7 +8,6 @@ import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
 import Solicitacoes from '../views/Solicitacoes.vue';
 import Altas from '../views/Altas.vue';
-import Alertas from '../views/Alertas.vue';
 import Indicadores from '../views/Indicadores.vue';
 import Historico from '../views/Historico.vue';
 import ApiYamlTester from '../views/ApiYamlTester.vue';
@@ -55,12 +54,6 @@ const routes = [
     name: 'Altas',
     component: Altas,
     meta: { title: 'Transferencias' },
-  },
-  {
-    path: '/alertas',
-    name: 'Alertas',
-    component: Alertas,
-    meta: { title: 'Alertas do Sistema' },
   },
   {
     path: '/indicadores',

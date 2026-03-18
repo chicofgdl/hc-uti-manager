@@ -1,3 +1,4 @@
+<!-- Fora do contrato atual do YAML. Componente mantido apenas como referencia, sem uso ativo na navegacao. -->
 <template>
   <div class="relative" ref="container">
     <button

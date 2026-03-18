@@ -1,3 +1,5 @@
+// Fora do contrato atual do YAML.
+// Mantido apenas como referencia tecnica ate alinhamento com o backend.
 import api from './api';
 import { Notification, Role } from '../types/care';
 
