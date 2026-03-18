@@ -55,17 +55,17 @@
             <tr v-for="bed in bedsStore.beds" :key="bed.id" class="hover:bg-slate-50">
               <td class="px-4 py-3 font-semibold text-slate-900">{{ bed.code }}</td>
               <td class="px-4 py-3">
-                <UiBadge class="bg-slate-100 text-slate-700 border-slate-200">
+                <UiBadge class="border-slate-200 bg-zinc-100 text-zinc-700">
                   {{ bed.legacy_status || 'N/A' }}
                 </UiBadge>
               </td>
               <td class="px-4 py-3">
-                <UiBadge :class="bed.availability_status === 'DISPONIVEL' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'">
+                <UiBadge :class="bed.availability_status === 'DISPONIVEL' ? 'border-teal-200 bg-teal-50 text-teal-700' : 'border-slate-200 bg-slate-100 text-slate-700'">
                   {{ bed.availability_status === 'DISPONIVEL' ? 'Disponível para reserva' : 'Não disponível para reserva' }}
                 </UiBadge>
               </td>
               <td class="px-4 py-3">
-                <UiBadge :class="bed.occupancy_status === 'LIVRE' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'">
+                <UiBadge :class="bed.occupancy_status === 'LIVRE' ? 'border-sky-200 bg-sky-50 text-sky-700' : 'border-amber-200 bg-amber-50 text-amber-700'">
                   {{ bed.occupancy_status === 'LIVRE' ? 'Livre' : 'Ocupado' }}
                 </UiBadge>
               </td>

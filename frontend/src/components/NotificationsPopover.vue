@@ -37,7 +37,7 @@
             v-for="notification in notificationsStore.notifications"
             :key="notification.id"
             class="rounded-lg p-3 transition hover:bg-slate-50"
-            :class="!notification.read ? 'bg-blue-50/40' : ''"
+            :class="!notification.read ? 'bg-sky-50' : ''"
             @click="markAsRead(notification.id)"
           >
             <div class="flex gap-3">
@@ -54,7 +54,7 @@
                   </p>
                   <span
                     v-if="!notification.read"
-                    class="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-blue-500"
+                    class="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-sky-500"
                     aria-label="Nao lida"
                   />
                 </div>
@@ -116,26 +116,26 @@ const typeConfig: Record<
 > = {
   RESERVA_CRIADA: {
     icon: UserPlus,
-    bg: 'bg-emerald-50',
-    color: 'text-emerald-600',
+    bg: 'bg-emerald-100',
+    color: 'text-emerald-700',
     title: 'Reserva criada',
   },
   RESERVA_ATUALIZADA: {
     icon: FileText,
-    bg: 'bg-blue-50',
-    color: 'text-blue-600',
+    bg: 'bg-sky-100',
+    color: 'text-sky-700',
     title: 'Reserva atualizada',
   },
   TRANSFERENCIA_CRIADA: {
     icon: ArrowRightLeft,
-    bg: 'bg-amber-50',
-    color: 'text-amber-600',
+    bg: 'bg-amber-100',
+    color: 'text-amber-700',
     title: 'Transferencia solicitada',
   },
   TRANSFERENCIA_ATUALIZADA: {
     icon: LogOut,
-    bg: 'bg-purple-50',
-    color: 'text-purple-600',
+    bg: 'bg-violet-100',
+    color: 'text-violet-700',
     title: 'Transferencia atualizada',
   },
 };

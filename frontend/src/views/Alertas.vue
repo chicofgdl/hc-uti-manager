@@ -40,7 +40,7 @@
           <div class="flex-1">
             <div class="flex items-center justify-between gap-2">
               <p class="font-semibold text-slate-900">{{ typeConfig[notif.type].title }}</p>
-              <UiBadge :class="notif.read ? 'bg-slate-100 text-slate-500 border-slate-200' : typeConfig[notif.type].badge">
+              <UiBadge :class="notif.read ? 'border-slate-200 bg-slate-100 text-slate-500' : typeConfig[notif.type].badge">
                 {{ notif.type }}
               </UiBadge>
             </div>
@@ -82,10 +82,10 @@ const filters: Array<{ value: 'all' | 'unread'; label: string }> = [
 const filter = ref<'all' | 'unread'>('all');
 
 const typeConfig = {
-  RESERVA_CRIADA: { icon: Bell, bg: 'bg-emerald-50 text-emerald-700', title: 'Reserva criada', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  RESERVA_ATUALIZADA: { icon: FileText, bg: 'bg-blue-50 text-blue-700', title: 'Reserva atualizada', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-  TRANSFERENCIA_CRIADA: { icon: ArrowRightLeft, bg: 'bg-amber-50 text-amber-700', title: 'Transferência solicitada', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-  TRANSFERENCIA_ATUALIZADA: { icon: LogOut, bg: 'bg-purple-50 text-purple-700', title: 'Transferência atualizada', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
+  RESERVA_CRIADA: { icon: Bell, bg: 'bg-emerald-50 text-emerald-700', title: 'Reserva criada', badge: 'border-emerald-200 bg-emerald-100 text-emerald-700' },
+  RESERVA_ATUALIZADA: { icon: FileText, bg: 'bg-sky-50 text-sky-700', title: 'Reserva atualizada', badge: 'border-sky-200 bg-sky-100 text-sky-700' },
+  TRANSFERENCIA_CRIADA: { icon: ArrowRightLeft, bg: 'bg-amber-50 text-amber-700', title: 'Transferência solicitada', badge: 'border-amber-200 bg-amber-100 text-amber-800' },
+  TRANSFERENCIA_ATUALIZADA: { icon: LogOut, bg: 'bg-violet-50 text-violet-700', title: 'Transferência atualizada', badge: 'border-violet-200 bg-violet-100 text-violet-700' },
 };
 
 const reload = () => {

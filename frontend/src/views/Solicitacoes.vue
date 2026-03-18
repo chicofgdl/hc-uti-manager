@@ -273,15 +273,15 @@ watch(
 const statusClass = (status: string) => {
   switch (status) {
     case 'PENDENTE':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'border-amber-200 bg-amber-50 text-amber-800';
     case 'ACEITA':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'border-teal-200 bg-teal-50 text-teal-700';
     case 'NEGADA':
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return 'border-rose-200 bg-rose-50 text-rose-700';
     case 'CANCELADA':
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+      return 'border-slate-200 bg-slate-100 text-slate-700';
     default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+      return 'border-zinc-200 bg-zinc-100 text-zinc-700';
   }
 };
 
