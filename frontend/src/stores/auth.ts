@@ -7,6 +7,8 @@ import { useRoleStore } from './role';
 interface User {
   username: string;
   groups: string[];
+  email?: string;
+  displayName?: string[];
 
   // Campos opcionais vindos do AD
   givenName?: string[];

@@ -60,9 +60,34 @@ const authStore = useAuthStore();
 const isOpen = ref(false);
 const toast = useToast();
 
-const displayName = computed(() => authStore.user?.givenName?.[0] || authStore.user?.username || 'Usuario');
-const displayEmail = computed(() => authStore.user?.userPrincipalName?.[0] || 'N/A');
-const displayRole = computed(() => authStore.user?.title?.[0] || 'Cargo nao informado');
+const displayName = computed(
+  () =>
+    authStore.user?.displayName?.[0]
+    || authStore.user?.givenName?.[0]
+    || authStore.user?.username
+    || 'Usuario'
+);
+
+const displayEmail = computed(
+  () =>
+    authStore.user?.email
+    || authStore.user?.userPrincipalName?.[0]
+    || `${authStore.user?.username || 'usuario'}@nao-informado`
+);
+
+const displayRole = computed(() => {
+  const groups = authStore.user?.groups || [];
+  if (groups.includes('enfermeiro_uti')) {
+    return 'Enfermeiro chefe da UTI';
+  }
+  if (groups.includes('enfermeiro_cirurgia')) {
+    return 'Enfermeiro chefe do centro cirurgico';
+  }
+  if (groups.includes('GLO-SEC-HCPE-SETISD')) {
+    return 'Administrador';
+  }
+  return authStore.user?.title?.[0] || 'Cargo nao informado';
+});
 
 const handleLogout = async () => {
   await authStore.logout(router);
