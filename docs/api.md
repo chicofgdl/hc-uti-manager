@@ -177,6 +177,14 @@ Estas rotas coexistem com o fluxo novo. Sao exatamente as que mais confundem o A
 | `GET` | `/leitos/disponiveis-para-reserva` | `enfermeiro_cirurgia` |
 | `GET` | `/leitos/quantidade-disponiveis` | `enfermeiro_cirurgia` |
 
+Observacao importante sobre o comportamento atual:
+
+- Embora o contrato nomeie `POST /leitos/{leito_id}/alta` e `DELETE /leitos/{leito_id}/alta` como solicitacao/cancelamento de alta, no fluxo legado atual estas rotas estao sendo usadas como o mecanismo de disponibilizar e cancelar a disponibilizacao de um leito para reserva.
+- Em termos de regra de negocio atual:
+  - `POST /leitos/{leito_id}/alta` -> marca o leito como disponivel para reserva
+  - `DELETE /leitos/{leito_id}/alta` -> remove essa disponibilidade para reserva
+- Por isso, a conta `cirurgia` enxerga em `GET /leitos/disponiveis-para-reserva` apenas os leitos que a UTI marcou dessa forma.
+
 ### Solicitacoes de reserva legadas
 
 | Metodo | URL | Permissao |
