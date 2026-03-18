@@ -1,49 +1,115 @@
-# API Reference (CSV-first)
+# API Reference
+
+Este arquivo documenta as rotas realmente montadas hoje em [`src/main.py`](/src/main.py).
 
 ## Base URL
+
 - Backend local: `http://localhost:8000`
-- Frontend Vite proxy: `http://localhost:5173` (requisições para `/api/...`)
+- Frontend Vite: `http://localhost:5173`
+- No frontend, chamadas para `/api/...` passam pelo proxy do Vite quando ele está ativo.
 
-## Auth
-- Rotas em `/api/...` usam Bearer token.
-- Em desenvolvimento local: `AUTH_ENABLED=false` permite mock user.
+## Autenticacao local
 
-## Fluxo UTI/CC
+### Como o provider eh escolhido
 
-### Leitos (UTI)
-| Método | URL | Descrição |
+- Se `AD_URL` estiver configurado no `.env`, a aplicacao tenta usar Active Directory.
+- Se `AD_URL` e `AD_BASEDN` estiverem comentados, a aplicacao usa `MockAuthProvider`.
+
+### Contas locais de teste
+
+Com AD comentado:
+
+- `admin / admin`
+  - grupos: `GLO-SEC-HCPE-SETISD`, `Users`
+- `uti / uti`
+  - grupos: `enfermeiro_uti`
+- `cirurgia / cirurgia`
+  - grupos: `enfermeiro_cirurgia`
+
+## Rotas atuais montadas
+
+### Auth e usuario
+
+| Metodo | URL | Auth | Observacao |
+| --- | --- | --- | --- |
+| `POST` | `/api/login` | Nao | Login por form-urlencoded |
+| `POST` | `/api/token/refresh` | Cookie | Renova access token a partir do cookie `refresh_token` |
+| `POST` | `/api/logout` | Cookie opcional | Invalida refresh token e limpa cookie |
+| `GET` | `/api/users/me` | Bearer | Retorna o usuario decodificado do token |
+| `GET` | `/api/admin-only-data` | Bearer admin | Exige grupo `GLO-SEC-HCPE-SETISD` |
+| `POST` | `/users/register` | Nao | Cadastro local de usuario legado |
+
+Payload de login:
+
+```txt
+Content-Type: application/x-www-form-urlencoded
+
+username=admin
+password=admin
+remember_me=false
+```
+
+### Pacientes
+
+Todas exigem Bearer token.
+
+| Metodo | URL | Observacao |
 | --- | --- | --- |
-| `GET` | `/api/icu/beds` | Lista todos os leitos do fluxo UTI/Centro Cirúrgico |
-| `GET` | `/api/icu/beds/available-count` | Quantidade de leitos disponíveis para reserva |
-| `PATCH` | `/api/icu/beds/{bed_id}/availability` | Disponibiliza ou cancela disponibilização de leito |
+| `GET` | `/api/pacientes` | Lista pacientes |
+| `GET` | `/api/pacientes/{codigo}` | Busca paciente por codigo |
+| `GET` | `/api/pacientes/disponiveis/quantidade` | Quantidade de leitos disponiveis via `LeitosController` |
+
+### Fluxo atual UTI / Centro Cirurgico
+
+Estas sao as rotas do fluxo novo em [`src/routers/care.py`](/mnt/c/Users/F_Gabriel/OneDrive/Área%20de%20Trabalho/faculdade/Projetos/hc-uti-manager/src/routers/care.py).
+
+Observacao importante:
+
+- Todas exigem Bearer token.
+- Hoje elas usam `decode_token`, mas nao fazem `require_role(...)` no roteador.
+- Mesmo assim, funcionalmente o fluxo esperado eh:
+  - Centro Cirurgico cria reservas e transferencias
+  - UTI decide reservas e transferencias
+
+#### Leitos
+
+| Metodo | URL | Fluxo esperado |
+| --- | --- | --- |
+| `GET` | `/api/icu/beds` | UTI |
+| `GET` | `/api/icu/beds/available-count` | UTI / apoio |
+| `PATCH` | `/api/icu/beds/{bed_id}/availability` | UTI |
 
 Payload:
+
 ```json
 {
   "availableForReservation": true
 }
 ```
 
-### Reservas
-| Método | URL | Descrição |
-| --- | --- | --- |
-| `POST` | `/api/surgical-center/reservations` | Centro Cirúrgico solicita reserva |
-| `GET` | `/api/surgical-center/reservations` | Lista reservas (visão Centro Cirúrgico) |
-| `GET` | `/api/icu/reservations` | Lista reservas (visão UTI) |
-| `PATCH` | `/api/icu/reservations/{id}/decision` | UTI aceita/nega reserva |
-| `PATCH` | `/api/surgical-center/reservations/{id}/cancel` | Centro Cirúrgico cancela solicitação/reserva |
-| `PATCH` | `/api/icu/reservations/{id}/cancel` | UTI cancela solicitação/reserva |
+#### Reservas
 
-Payload criação:
+| Metodo | URL | Fluxo esperado |
+| --- | --- | --- |
+| `POST` | `/api/surgical-center/reservations` | Centro Cirurgico |
+| `GET` | `/api/surgical-center/reservations` | Centro Cirurgico |
+| `GET` | `/api/icu/reservations` | UTI |
+| `PATCH` | `/api/icu/reservations/{reservation_id}/decision` | UTI |
+| `PATCH` | `/api/surgical-center/reservations/{reservation_id}/cancel` | Centro Cirurgico |
+| `PATCH` | `/api/icu/reservations/{reservation_id}/cancel` | UTI |
+
+Payload de criacao:
+
 ```json
 {
   "patientId": "77001",
-  "notes": "pós-operatório",
+  "notes": "pos-operatorio",
   "preferredDateTime": null
 }
 ```
 
-Payload decisão:
+Payload de decisao:
+
 ```json
 {
   "decision": "ACCEPT",
@@ -51,15 +117,25 @@ Payload decisão:
 }
 ```
 
-### Transferências (Centro Cirúrgico -> UTI)
-| Método | URL | Descrição |
-| --- | --- | --- |
-| `POST` | `/api/surgical-center/transfers` | Centro Cirúrgico solicita transferência |
-| `GET` | `/api/surgical-center/transfers` | Lista transferências (visão Centro Cirúrgico) |
-| `GET` | `/api/icu/transfers` | Lista transferências (visão UTI) |
-| `PATCH` | `/api/icu/transfers/{id}/decision` | UTI aceita/nega transferência |
+Payload de cancelamento:
 
-Payload criação:
+```json
+{
+  "reason": "Paciente reavaliado"
+}
+```
+
+#### Transferencias
+
+| Metodo | URL | Fluxo esperado |
+| --- | --- | --- |
+| `POST` | `/api/surgical-center/transfers` | Centro Cirurgico |
+| `GET` | `/api/surgical-center/transfers` | Centro Cirurgico |
+| `GET` | `/api/icu/transfers` | UTI |
+| `PATCH` | `/api/icu/transfers/{transfer_id}/decision` | UTI |
+
+Payload de criacao:
+
 ```json
 {
   "patientId": "77001",
@@ -69,44 +145,152 @@ Payload criação:
 }
 ```
 
-### Notificações
-| Método | URL | Descrição |
+Payload de decisao:
+
+```json
+{
+  "decision": "ACCEPT",
+  "bedId": 1
+}
+```
+
+#### Notificacoes
+
+| Metodo | URL | Observacao |
 | --- | --- | --- |
-| `GET` | `/api/notifications?role=ICU&unreadOnly=false` | Lista notificações por perfil |
-| `PATCH` | `/api/notifications/{notification_id}/read` | Marca uma notificação como lida |
-| `PATCH` | `/api/notifications/read-all?role=ICU` | Marca todas como lidas para o perfil |
+| `GET` | `/api/notifications?role=ICU&unreadOnly=false` | Lista notificacoes por role |
+| `PATCH` | `/api/notifications/{notification_id}/read` | Marca uma notificacao como lida |
+| `PATCH` | `/api/notifications/read-all?role=ICU` | Marca todas como lidas |
 
-## Regras de negócio aplicadas na API
-- Leito só pode ser disponibilizado para reserva se estiver livre.
-- Reserva aceita torna o leito indisponível para novas reservas.
-- Uma reserva ativa (`PENDENTE`/`ACEITA`) por paciente.
-- Uma transferência ativa (`PENDENTE`/`ACEITA`) por paciente.
-- Aceite de transferência ocupa leito e move paciente para localização `UTI`.
-- Negativas/cancelamentos limpam vínculos de leito/reserva/transferência.
+## Rotas legadas ainda montadas
 
-## Persistência CSV obrigatória
-- Cada ação atualiza `data/leitos.csv` e `data/pacientes.csv`.
-- Escrita com lock de concorrência e atualização atômica por arquivo.
-- Colunas `care_*` mantêm estado operacional sem remover colunas legadas.
+Estas rotas coexistem com o fluxo novo. Sao exatamente as que mais confundem o API tester hoje.
 
-Campos principais adicionados:
-- `leitos.csv`:
-  - `care_bed_id`
-  - `care_base_availability_status`
-  - `care_availability_status`
-  - `care_occupancy_status`
-  - `care_reserved_for_patient`
-  - `care_current_patient`
-- `pacientes.csv`:
-  - `care_patient_id`
-  - `care_location`
-  - `care_current_bed_id`
-  - `care_current_bed_code`
-  - `care_reservations_json`
-  - `care_transfers_json`
+### Leitos legados
 
-## Contratos e implementação
-- Rotas: `src/routers/care.py`
-- Schemas: `src/schemas/care.py`
-- Regras: `src/providers/implementations/app/care_provider.py`
-- Persistência CSV: `src/resources/care_csv_store.py`
+| Metodo | URL | Permissao |
+| --- | --- | --- |
+| `GET` | `/leitos` | `enfermeiro_uti` |
+| `POST` | `/leitos/{lto_lto_id}/reservar` | `enfermeiro_cirurgia` |
+| `POST` | `/leitos/{leito_id}/alta` | `enfermeiro_uti` |
+| `DELETE` | `/leitos/{leito_id}/alta` | `enfermeiro_uti` |
+| `GET` | `/leitos/disponiveis-para-reserva` | `enfermeiro_cirurgia` |
+| `GET` | `/leitos/quantidade-disponiveis` | `enfermeiro_cirurgia` |
+
+### Solicitacoes de reserva legadas
+
+| Metodo | URL | Permissao |
+| --- | --- | --- |
+| `POST` | `/solicitacoes-reserva` | `enfermeiro_cirurgia` |
+| `GET` | `/solicitacoes-reserva` | `enfermeiro_uti` |
+| `GET` | `/solicitacoes-reserva/pendentes` | `enfermeiro_uti` |
+| `POST` | `/solicitacoes-reserva/{id}/aprovar` | `enfermeiro_uti` |
+| `POST` | `/solicitacoes-reserva/{id}/negar` | `enfermeiro_uti` |
+| `POST` | `/solicitacoes-reserva/{id}/cancelar` | `enfermeiro_uti` ou `enfermeiro_cirurgia` |
+
+Payload de criacao:
+
+```json
+{
+  "prontuario": "77001",
+  "idade": 40,
+  "especialidade": "Cardiologia"
+}
+```
+
+### Reservas legadas
+
+| Metodo | URL | Permissao |
+| --- | --- | --- |
+| `POST` | `/reservas` | `enfermeiro_cirurgia` |
+
+### Transferencias legadas
+
+| Metodo | URL | Permissao |
+| --- | --- | --- |
+| `POST` | `/transferencias` | `enfermeiro_cirurgia` |
+| `GET` | `/transferencias` | `enfermeiro_uti` |
+| `POST` | `/transferencias/{transferencia_id}/aceitar` | `enfermeiro_uti` |
+| `POST` | `/transferencias/{transferencia_id}/negar` | `enfermeiro_uti` |
+
+Payload de criacao:
+
+```json
+{
+  "prontuario_paciente": 77001,
+  "idade_paciente": 40,
+  "especialidade_paciente": "Cardiologia"
+}
+```
+
+### Notificacoes legadas
+
+| Metodo | URL | Permissao |
+| --- | --- | --- |
+| `GET` | `/notificacoes` | Bearer; role inferida pelos grupos do token |
+
+## O que no API tester eh legado
+
+Arquivo: [`frontend/src/views/ApiYamlTester.vue`](/mnt/c/Users/F_Gabriel/OneDrive/Área%20de%20Trabalho/faculdade/Projetos/hc-uti-manager/frontend/src/views/ApiYamlTester.vue)
+
+### Rotas do tester que batem no fluxo atual
+
+- `/api/login`
+- `/api/token/refresh`
+- `/api/logout`
+- `/api/users/me`
+- `/api/admin-only-data`
+- `/api/pacientes`
+- `/api/pacientes/{codigo}`
+- `/api/pacientes/disponiveis/quantidade`
+
+### Rotas do tester que sao legadas
+
+- `/leitos`
+- `/leitos/{lto_lto_id}/reservar`
+- `/leitos/{leito_id}/alta`
+- `/leitos/disponiveis-para-reserva`
+- `/leitos/quantidade-disponiveis`
+- `/solicitacoes-reserva`
+- `/solicitacoes-reserva/pendentes`
+- `/solicitacoes-reserva/{id}/aprovar`
+- `/solicitacoes-reserva/{id}/negar`
+- `/solicitacoes-reserva/{id}/cancelar`
+- `/reservas`
+- `/transferencias`
+- `/transferencias/{transferencia_id}/aceitar`
+- `/transferencias/{transferencia_id}/negar`
+
+### O que o tester nao cobre do fluxo atual
+
+O tester nao cobre as rotas novas mais importantes do fluxo assistencial:
+
+- `GET /api/icu/beds`
+- `PATCH /api/icu/beds/{bed_id}/availability`
+- `GET /api/icu/beds/available-count`
+- `POST /api/surgical-center/reservations`
+- `GET /api/surgical-center/reservations`
+- `GET /api/icu/reservations`
+- `PATCH /api/icu/reservations/{reservation_id}/decision`
+- `PATCH /api/surgical-center/reservations/{reservation_id}/cancel`
+- `PATCH /api/icu/reservations/{reservation_id}/cancel`
+- `POST /api/surgical-center/transfers`
+- `GET /api/surgical-center/transfers`
+- `GET /api/icu/transfers`
+- `PATCH /api/icu/transfers/{transfer_id}/decision`
+- `GET /api/notifications`
+- `PATCH /api/notifications/{notification_id}/read`
+- `PATCH /api/notifications/read-all`
+
+Motivo principal:
+
+- o componente hoje so suporta `GET`, `POST` e `DELETE`
+- o fluxo novo usa bastante `PATCH`
+
+## Fonte de verdade
+
+Se houver divergencia entre este documento, o API tester e o frontend, a fonte de verdade eh:
+
+1. [`src/main.py`](/mnt/c/Users/F_Gabriel/OneDrive/Área%20de%20Trabalho/faculdade/Projetos/hc-uti-manager/src/main.py)
+2. os roteadores em `src/routers/`
+3. os schemas de `src/schemas/`
