@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 class SolicitacaoReservaInput(TypedDict):
-    prontuario: str
+    prontuario: str | int
     idade: int
     especialidade: str
 

@@ -286,25 +286,13 @@ def get_notificacao_controller(
 
 # --- Transferencia: provider + controller wiring ---------------------------------
 from controllers.transferencia_paciente_controller import TransferenciaPacienteController
-# Assuming there's a provider, but for now, I'll assume it's similar
-# For simplicity, I'll assume it uses a provider from providers/implementations/banco/transferencia_postgress.py or similar
-
-# Since I don't see it, I'll create a simple one
-# But to make it work, I'll assume it's like solicitacao
+from providers.implementations.banco.transferencia_postgress import TransferenciaPostgresProvider
 
 def get_transferencia_paciente_controller(
+    session: AsyncSession = Depends(_maybe_get_postgres_session),
     notificacao_controller: NotificacaoController = Depends(get_notificacao_controller)
 ) -> TransferenciaPacienteController:
-    # For now, mock provider
-    class MockTransferenciaProvider:
-        async def criar(self, data):
-            pass
-        async def listar(self):
-            return []
-        async def aceitar(self, id, leito):
-            pass
-        async def negar(self, id, motivo):
-            pass
-    
-    provider = MockTransferenciaProvider()
+    if session is None:
+        raise RuntimeError("Transferencia provider requires Postgres session")
+    provider = TransferenciaPostgresProvider(session)
     return TransferenciaPacienteController(provider, notificacao_controller)

@@ -221,6 +221,7 @@ class AuthHandler:
 
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()
+        to_encode.pop("password", None)
         if 'username' in to_encode:
             to_encode['sub'] = to_encode['username']
         expire = datetime.utcnow() + (expires_delta or timedelta(hours=JWT_EXP_HOURS))
