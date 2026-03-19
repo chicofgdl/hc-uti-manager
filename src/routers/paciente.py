@@ -10,9 +10,10 @@ from controllers.leitos_controller import LeitosController
 
 from auth.auth import auth_handler
 
-# O contrato atual nao deve forcar CSV. A estrategia vem do ambiente e
-# assume Postgres por padrao, porque a origem oficial destes dados nao eh o CSV.
-STRATEGY = os.getenv("PACIENTE_PROVIDER_TYPE", "POSTGRES")
+# O contrato atual destas rotas deve usar Postgres.
+# Mesmo que exista configuracao antiga apontando para CSV, mantemos
+# estas rotas alinhadas ao banco oficial quando houver POSTGRES_DSN.
+STRATEGY = "POSTGRES" if os.getenv("POSTGRES_DSN") else os.getenv("PACIENTE_PROVIDER_TYPE", "POSTGRES")
 
 router = APIRouter(
     prefix="/api/pacientes",

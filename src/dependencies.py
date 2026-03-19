@@ -98,6 +98,10 @@ def _get_leito_csv_provider() -> LeitoProviderInterface:
 
 def get_leito_provider() -> Callable[..., LeitoProviderInterface]:
     """Return dependency function for leito provider based on env vars."""
+    if os.getenv("POSTGRES_DSN"):
+        logging.info("Selected leito provider strategy: postgres (POSTGRES_DSN is configured)")
+        return _get_leito_banco_provider
+
     explicit = (os.getenv("LEITO_PROVIDER_TYPE") or "").strip().upper()
     if explicit == "POSTGRES":
         logging.info("Selected leito provider strategy from LEITO_PROVIDER_TYPE: postgres")

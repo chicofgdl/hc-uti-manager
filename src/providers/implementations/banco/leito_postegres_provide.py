@@ -49,6 +49,21 @@ class LeitoBancoBProvider:
         idade: int,
         especialidade: str
     ):
+        try:
+            prontuario_val = int(prontuario)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Prontuario invalido para reserva de leito"
+            )
+
+        try:
+            idade_val = int(idade)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Idade invalida para reserva de leito"
+            )
 
         result = await self.session.execute(
             text("""
@@ -86,8 +101,8 @@ class LeitoBancoBProvider:
             """),
             {
                 "lto_lto_id": lto_lto_id,
-                "prontuario": prontuario,
-                "idade": idade,
+                "prontuario": prontuario_val,
+                "idade": idade_val,
                 "especialidade": especialidade,
                 "atualizado_em": utcnow()
             }

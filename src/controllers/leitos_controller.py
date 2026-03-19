@@ -13,11 +13,14 @@ class LeitosController:
         lto_lto_id: str,
         payload: ReservaLeitoInput
     ):
+        prontuario = payload["prontuario"] if isinstance(payload, dict) else payload.prontuario
+        idade = payload["idade"] if isinstance(payload, dict) else payload.idade
+        especialidade = payload["especialidade"] if isinstance(payload, dict) else payload.especialidade
         await self.provider.reservar_leito(
             lto_lto_id=lto_lto_id,
-            prontuario=payload.prontuario,
-            idade=payload.idade,
-            especialidade=payload.especialidade
+            prontuario=prontuario,
+            idade=idade,
+            especialidade=especialidade
         )
 
         return {"message": "Reserva registrada com sucesso"}
