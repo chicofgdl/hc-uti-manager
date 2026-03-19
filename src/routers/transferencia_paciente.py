@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Body
+import logging
+from fastapi import APIRouter, Depends, Body, HTTPException
 from typing import Optional
 
 from controllers.transferencia_paciente_controller import (
@@ -24,10 +25,19 @@ async def criar_transferencia(
     ),
     _ = Depends(auth_handler.require_role("enfermeiro_cirurgia"))
 ):
-    await controller.criar(data)
-    return {
-        "message": "Solicitação de transferência criada com sucesso"
-    }
+    try:
+        await controller.criar(data)
+        return {
+            "message": "Solicitação de transferência criada com sucesso"
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logging.warning("Solicitacao de transferencia duplicada/bloqueada: %s", e)
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logging.exception("ERROR in criar_transferencia")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("")
 async def listar_transferencias(

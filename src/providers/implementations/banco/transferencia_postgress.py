@@ -7,22 +7,57 @@ class TransferenciaPostgresProvider:
         self.session = session
 
     async def criar(self, data):
-        await self.session.execute(
-            text(
-                """
-                INSERT INTO solicitacoes_transferencia
-                    (prontuario_paciente, idade_paciente, especialidade_paciente, status, lto_lto_id, criada_em, atualizada_em)
-                VALUES
-                    (:p, :i, :e, 'PENDENTE', NULL, NOW(), NOW())
-                """
-            ),
-            {
-                "p": str(data["prontuario_paciente"]),
-                "i": int(data["idade_paciente"]),
-                "e": data["especialidade_paciente"],
-            },
-        )
-        await self.session.commit()
+        prontuario = str(data["prontuario_paciente"])
+
+        async with self.session.begin():
+            # Evita duas transferencias ativas para o mesmo paciente mesmo com requisicoes simultaneas.
+            await self.session.execute(
+                text(
+                    """
+                    SELECT pg_advisory_xact_lock(
+                        hashtext('solicitacoes_transferencia'),
+                        hashtext(:prontuario)
+                    )
+                    """
+                ),
+                {"prontuario": prontuario},
+            )
+
+            existing = await self.session.execute(
+                text(
+                    """
+                    SELECT id, status
+                    FROM solicitacoes_transferencia
+                    WHERE prontuario_paciente = :prontuario
+                      AND status IN ('PENDENTE', 'ACEITA')
+                    ORDER BY criada_em DESC
+                    LIMIT 1
+                    """
+                ),
+                {"prontuario": prontuario},
+            )
+            active_request = existing.mappings().first()
+            if active_request:
+                raise ValueError(
+                    "Paciente já possui solicitação de transferência ativa "
+                    f"(id={active_request['id']}, status={active_request['status']})."
+                )
+
+            await self.session.execute(
+                text(
+                    """
+                    INSERT INTO solicitacoes_transferencia
+                        (prontuario_paciente, idade_paciente, especialidade_paciente, status, lto_lto_id, criada_em, atualizada_em)
+                    VALUES
+                        (:p, :i, :e, 'PENDENTE', NULL, NOW(), NOW())
+                    """
+                ),
+                {
+                    "p": prontuario,
+                    "i": int(data["idade_paciente"]),
+                    "e": data["especialidade_paciente"],
+                },
+            )
 
     async def listar(self):
         result = await self.session.execute(

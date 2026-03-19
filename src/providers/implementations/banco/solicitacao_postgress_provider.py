@@ -14,33 +14,68 @@ class SolicitacaoReservaProvider:
         idade: int,
         especialidade: str
     ) -> int:
-        query = text("""
-            INSERT INTO solicitacoes_reserva (
-                prontuario_paciente,
-                idade_paciente,
-                especialidade_paciente,
-                status,
-                criada_em,
-                atualizada_em
-            )
-            VALUES (
-                :prontuario,
-                :idade,
-                :especialidade,
-                'PENDENTE',
-                NOW(),
-                NOW()
-            )
-            RETURNING id
-        """)
+        prontuario_str = str(prontuario)
 
-        result = await self.session.execute(query, {
-            "prontuario": prontuario,
-            "idade": idade,
-            "especialidade": especialidade
-        })
-        await self.session.commit()
-        return int(result.scalar_one())
+        async with self.session.begin():
+            # Serializa criacoes por prontuario para evitar corrida entre requisicoes concorrentes.
+            await self.session.execute(
+                text(
+                    """
+                    SELECT pg_advisory_xact_lock(
+                        hashtext('solicitacoes_reserva'),
+                        hashtext(:prontuario)
+                    )
+                    """
+                ),
+                {"prontuario": prontuario_str},
+            )
+
+            existing = await self.session.execute(
+                text(
+                    """
+                    SELECT id, status
+                    FROM solicitacoes_reserva
+                    WHERE prontuario_paciente = :prontuario
+                      AND status IN ('PENDENTE', 'APROVADA')
+                    ORDER BY criada_em DESC
+                    LIMIT 1
+                    """
+                ),
+                {"prontuario": prontuario_str},
+            )
+            active_request = existing.mappings().first()
+            if active_request:
+                raise ValueError(
+                    "Paciente já possui solicitação de reserva ativa "
+                    f"(id={active_request['id']}, status={active_request['status']})."
+                )
+
+            query = text("""
+                INSERT INTO solicitacoes_reserva (
+                    prontuario_paciente,
+                    idade_paciente,
+                    especialidade_paciente,
+                    status,
+                    criada_em,
+                    atualizada_em
+                )
+                VALUES (
+                    :prontuario,
+                    :idade,
+                    :especialidade,
+                    'PENDENTE',
+                    NOW(),
+                    NOW()
+                )
+                RETURNING id
+            """)
+
+            result = await self.session.execute(query, {
+                "prontuario": prontuario_str,
+                "idade": idade,
+                "especialidade": especialidade
+            })
+            return int(result.scalar_one())
 
     async def listar_todas(self) -> list[dict]:
         result = await self.session.execute(text("""

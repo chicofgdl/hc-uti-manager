@@ -38,6 +38,9 @@ async def criar_solicitacao(
         return {"message": "Solicitação criada com sucesso", "id": created_id}
     except HTTPException:
         raise
+    except ValueError as e:
+        logging.warning("Solicitacao de reserva duplicada/bloqueada: %s", e)
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         logging.exception("ERROR in criar_solicitacao")
         raise HTTPException(status_code=500, detail=str(e))

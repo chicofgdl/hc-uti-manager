@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useUiStore } from '../stores/ui';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
 import Admin from '../views/Admin.vue';
@@ -84,7 +85,17 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next: NavigationGuardNext) => {
   const authStore = useAuthStore();
+  const uiStore = useUiStore();
   const isLoginRoute = to.name === 'Login';
+  const routeChanged = _from.matched.length > 0 && to.fullPath !== _from.fullPath;
+
+  if (routeChanged) {
+    const routeLabel = typeof to.meta.title === 'string'
+      ? to.meta.title
+      : String(to.name ?? 'pagina');
+
+    uiStore.startNavigation(routeLabel);
+  }
 
   if (!authStore.isAuthenticated && !isLoginRoute) {
     next({ name: 'Login', query: { redirect: to.fullPath } });
@@ -97,6 +108,16 @@ router.beforeEach((to, _from, next: NavigationGuardNext) => {
   }
 
   next();
+});
+
+router.afterEach(() => {
+  const uiStore = useUiStore();
+  uiStore.finishNavigation();
+});
+
+router.onError(() => {
+  const uiStore = useUiStore();
+  uiStore.finishNavigation();
 });
 
 export default router;
