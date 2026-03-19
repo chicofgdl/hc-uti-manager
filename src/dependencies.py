@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 from providers.implementations.paciente_postgres_provider import PacientePostgresProvider
+from providers.implementations.paciente_app_sqlite_provider import PacienteAppSqliteProvider
 from providers.implementations.paciente_csv_provider import PacienteCsvProvider
-from resources.database import get_aghu_db_session
+from resources.database import get_aghu_db_session, get_app_db_session
 
 # Função auxiliar para sessão Postgres
 async def _maybe_get_postgres_session():
@@ -37,6 +38,11 @@ def _get_paciente_postgres_provider(
 ) -> PacienteProviderInterface:
     return PacientePostgresProvider(session=session)
 
+def _get_paciente_app_provider(
+    session: AsyncSession = Depends(get_app_db_session)
+) -> PacienteProviderInterface:
+    return PacienteAppSqliteProvider(session=session)
+
 def _get_paciente_csv_provider() -> PacienteProviderInterface:
     csv_path = _resolve_csv_path("PACIENTE_CSV_PATH", "data/pacientes.csv")
     return PacienteCsvProvider(csv_path=csv_path)
@@ -47,6 +53,8 @@ def get_paciente_provider(strategy: str) -> Callable[..., PacienteProviderInterf
     Esta é uma fábrica. Baseado na string 'strategy', ela não retorna o provedor,
     mas sim a FUNÇÃO DE DEPENDÊNCIA correta que o FastAPI deve usar.
     """
+    if strategy.upper() == "APP":
+        return _get_paciente_app_provider
     if strategy.upper() == "POSTGRES":
         return _get_paciente_postgres_provider
     elif strategy.upper() == "CSV":

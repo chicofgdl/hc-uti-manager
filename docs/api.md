@@ -53,10 +53,16 @@ remember_me=false
 
 Todas exigem Bearer token.
 
+Observacao importante:
+
+- Estas rotas nao usam CSV.
+- Hoje a fonte oficial de `/api/pacientes` eh o banco da aplicacao (`data/app.db` / tabela `patients`), porque o Postgres do fluxo legado nao possui tabela de pacientes.
+- O shape atual retornado e enxuto e pode conter campos nulos quando o banco nao tiver esses dados.
+
 | Metodo | URL | Observacao |
 | --- | --- | --- |
-| `GET` | `/api/pacientes` | Lista pacientes |
-| `GET` | `/api/pacientes/{codigo}` | Busca paciente por codigo |
+| `GET` | `/api/pacientes` | Lista pacientes a partir do banco da aplicacao |
+| `GET` | `/api/pacientes/{codigo}` | Busca paciente por codigo a partir do banco da aplicacao |
 | `GET` | `/api/pacientes/disponiveis/quantidade` | Quantidade de leitos disponiveis via `LeitosController` |
 
 ### Fluxo atual UTI / Centro Cirurgico
