@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useUiStore } from '../stores/ui';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
 import Admin from '../views/Admin.vue';
@@ -8,9 +9,9 @@ import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
 import Solicitacoes from '../views/Solicitacoes.vue';
 import Altas from '../views/Altas.vue';
-import Alertas from '../views/Alertas.vue';
 import Indicadores from '../views/Indicadores.vue';
 import Historico from '../views/Historico.vue';
+import ApiYamlTester from '../views/ApiYamlTester.vue';
 
 const routes = [
   {
@@ -47,19 +48,13 @@ const routes = [
     path: '/solicitacoes',
     name: 'Solicitacoes',
     component: Solicitacoes,
-    meta: { title: 'Solicitacoes de Vaga' },
+    meta: { title: 'Reservas de Leito' },
   },
   {
     path: '/altas',
     name: 'Altas',
     component: Altas,
-    meta: { title: 'Solicitacoes de Alta' },
-  },
-  {
-    path: '/alertas',
-    name: 'Alertas',
-    component: Alertas,
-    meta: { title: 'Alertas do Sistema' },
+    meta: { title: 'Transferencias' },
   },
   {
     path: '/indicadores',
@@ -73,6 +68,12 @@ const routes = [
     component: Historico,
     meta: { title: 'Historico de Acoes' },
   },
+  {
+    path: '/teste-api',
+    name: 'ApiTeste',
+    component: ApiYamlTester,
+    meta: { title: 'Teste das Rotas do YAML' },
+  },
 ];
 
 const router = createRouter({
@@ -84,7 +85,17 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next: NavigationGuardNext) => {
   const authStore = useAuthStore();
+  const uiStore = useUiStore();
   const isLoginRoute = to.name === 'Login';
+  const routeChanged = _from.matched.length > 0 && to.fullPath !== _from.fullPath;
+
+  if (routeChanged) {
+    const routeLabel = typeof to.meta.title === 'string'
+      ? to.meta.title
+      : String(to.name ?? 'pagina');
+
+    uiStore.startNavigation(routeLabel);
+  }
 
   if (!authStore.isAuthenticated && !isLoginRoute) {
     next({ name: 'Login', query: { redirect: to.fullPath } });
@@ -97,6 +108,16 @@ router.beforeEach((to, _from, next: NavigationGuardNext) => {
   }
 
   next();
+});
+
+router.afterEach(() => {
+  const uiStore = useUiStore();
+  uiStore.finishNavigation();
+});
+
+router.onError(() => {
+  const uiStore = useUiStore();
+  uiStore.finishNavigation();
 });
 
 export default router;

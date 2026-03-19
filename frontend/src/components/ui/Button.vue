@@ -16,7 +16,7 @@
 import { computed } from 'vue';
 
 type Variant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-type Size = 'default' | 'sm' | 'lg' | 'icon';
+type Size = 'default' | 'xs' | 'sm' | 'lg' | 'icon';
 
 const props = defineProps<{
   variant?: Variant;
@@ -45,6 +45,8 @@ const variantClass = computed(() => {
 
 const sizeClass = computed(() => {
   switch (props.size) {
+    case 'xs':
+      return 'h-8 rounded-md px-2 text-xs';
     case 'sm':
       return 'h-9 rounded-md px-3';
     case 'lg':

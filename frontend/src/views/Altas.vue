@@ -1,122 +1,293 @@
 <template>
   <section class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-3xl font-bold text-slate-900">Solicitacoes de Alta</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="space-y-1">
+        <h2 class="text-3xl font-bold text-slate-900">Transferências Centro Cirúrgico → UTI</h2>
       </div>
+      <UiButton variant="outline" size="sm" @click="reload">Atualizar</UiButton>
     </div>
 
-    <div class="grid gap-4">
-      <article
-        v-for="alta in altas"
-        :key="alta.id"
-        class="rounded-xl border border-slate-200 bg-white shadow-sm"
-      >
-        <header class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Prontuario</p>
-            <p class="text-lg font-semibold text-slate-900">{{ alta.prontuario }}</p>
-            <div class="mt-2 flex items-center gap-2 text-sm text-slate-600">
-              <ClockIcon class="h-4 w-4" />
-              <span>{{ alta.dataHora }}</span>
-            </div>
-          </div>
-          <UiBadge :class="alta.leitoDestino.includes('Pendente') ? badgeClasses.pendente : badgeClasses.definido">
-            {{ alta.leitoDestino.includes('Pendente') ? 'Aguardando NIR' : 'Destino Definido' }}
-          </UiBadge>
-        </header>
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-1">
+        <template v-if="isCc">
+          <h3 class="mb-2 text-lg font-semibold text-slate-900">Criar transferência</h3>
+          <form class="space-y-3" @submit.prevent="handleCreate">
+            <label class="block text-sm font-medium text-slate-700">
+              Paciente
+              <select
+                v-model="form.patientId"
+                required
+                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="" disabled>
+                  {{ loadingPatients ? 'Carregando pacientes...' : 'Selecione um paciente' }}
+                </option>
+                <option
+                  v-for="patient in patientOptions"
+                  :key="patient.id"
+                  :value="patient.id"
+                >
+                  {{ patient.label }}
+                </option>
+              </select>
+            </label>
+            <p v-if="selectedPatient" class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Prontuário {{ selectedPatient.id }} | Especialidade {{ selectedPatient.specialty }} | Idade enviada {{ selectedPatient.age }}
+              <span v-if="selectedPatient.ageEstimated"> (estimada)</span>
+              <span v-if="selectedPatient.specialtyMocked"> | Especialidade preenchida como "Não informado"</span>
+            </p>
+            <UiButton type="submit" class="w-full" :disabled="!form.patientId">
+              Solicitar transferência
+            </UiButton>
+          </form>
+        </template>
+        <div v-else class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+          Somente a conta de cirurgia cria transferências.
+        </div>
+      </div>
 
-        <div class="px-5 py-4">
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="flex-1">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Leito Atual</p>
-              <p class="text-xl font-bold text-slate-900">Leito {{ alta.leitoAtual }}</p>
-            </div>
-            <ArrowRightIcon class="h-5 w-5 text-slate-400" />
-            <div class="flex-1">
-              <p class="text-xs uppercase tracking-wide text-slate-500">Destino</p>
-              <p class="font-semibold text-slate-900">{{ alta.leitoDestino }}</p>
-            </div>
+      <div class="space-y-6 lg:col-span-2">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 px-4 py-3">
+            <h3 class="text-lg font-semibold text-slate-900">Pendentes para decisão da UTI</h3>
           </div>
-
-          <div
-            v-if="alta.necessidadesEspeciais"
-            class="mt-4 border-l-4 border-blue-500 pl-3"
-          >
-            <p class="text-sm font-medium text-slate-700">Necessidades Especiais</p>
-            <p class="mt-1 text-sm text-slate-600">{{ alta.necessidadesEspeciais }}</p>
+          <div v-if="!isIcu" class="px-4 py-6 text-sm text-slate-500">
+            Entre com uma conta UTI para aceitar ou negar transferências.
           </div>
-
-          <div class="mt-4 flex flex-wrap gap-2">
-            <template v-if="alta.leitoDestino.includes('Pendente')">
-              <UiButton size="sm">
-                Indicar Necessidades Especiais
-              </UiButton>
-              <UiButton size="sm" variant="destructive">
-                Cancelar Alta
-              </UiButton>
-            </template>
-            <template v-else>
-              <UiButton size="sm">
-                Confirmar Transferencia
-              </UiButton>
-              <UiButton size="sm" variant="outline">
-                Alterar Destino
-              </UiButton>
-              <UiButton size="sm" variant="destructive">
-                Cancelar Alta
-              </UiButton>
-            </template>
+          <div v-else-if="pendingTransfers.length === 0" class="px-4 py-6 text-sm text-slate-500">
+            Nenhuma transferência pendente.
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div v-for="tr in pendingTransfers" :key="tr.id" class="flex flex-wrap items-center gap-3 px-4 py-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-slate-900">
+                  Paciente {{ tr.patient.external_id }}{{ tr.especialidade_paciente ? ` - ${tr.especialidade_paciente}` : '' }}
+                </p>
+                <p class="text-xs text-slate-500">
+                  Idade {{ tr.idade_paciente ?? 'N/A' }} | Criado em {{ formatDate(tr.created_at) }}
+                </p>
+              </div>
+              <select v-model="selectedBed[tr.id]" class="rounded-lg border border-slate-200 px-2 py-1 text-sm">
+                <option :value="null">Selecione um leito</option>
+                <option v-for="bed in bedsStore.availableBeds" :key="bed.id" :value="bed.code">
+                  {{ bed.code }}
+                </option>
+              </select>
+              <div class="flex gap-2">
+                <UiButton size="sm" @click="decide(tr.id, 'ACCEPT')">Aceitar</UiButton>
+                <UiButton size="sm" variant="destructive" @click="decide(tr.id, 'DENY')">Negar</UiButton>
+              </div>
+            </div>
           </div>
         </div>
-      </article>
+
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 px-4 py-3">
+            <h3 class="text-lg font-semibold text-slate-900">
+              {{ isCc ? 'Transferências criadas nesta sessão' : 'Transferências conhecidas pela UTI' }}
+            </h3>
+          </div>
+          <div v-if="visibleTransfers.length === 0" class="px-4 py-6 text-sm text-slate-500">
+            Nenhuma transferência para exibir.
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div v-for="tr in visibleTransfers" :key="tr.id" class="flex flex-wrap items-center gap-3 px-4 py-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-slate-900">
+                  Paciente {{ tr.patient.external_id }}{{ tr.especialidade_paciente ? ` - ${tr.especialidade_paciente}` : '' }}
+                </p>
+                <p class="text-xs text-slate-500">
+                  Status:
+                  <UiBadge :class="statusClass(tr.status)">{{ tr.status }}</UiBadge>
+                  <span v-if="tr.bed_code" class="ml-2 text-slate-600">Leito {{ tr.bed_code }}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ClockIcon, ArrowRightIcon } from '@heroicons/vue/24/outline';
-import UiBadge from '../components/ui/Badge.vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import UiButton from '../components/ui/Button.vue';
+import UiBadge from '../components/ui/Badge.vue';
+import { useTransfersStore } from '../stores/transfers';
+import { useBedsStore } from '../stores/beds';
+import { useRoleStore } from '../stores/role';
+import { useToast } from 'vue-toastification';
+import api from '../services/api';
 
-type Alta = {
+type PatientOption = {
   id: string;
-  prontuario: string;
-  leitoAtual: string;
-  leitoDestino: string;
-  dataHora: string;
-  necessidadesEspeciais?: string;
+  label: string;
+  specialty: string;
+  specialtyMocked: boolean;
+  age: number;
+  ageEstimated: boolean;
 };
 
-const altas: Alta[] = [
-  {
-    id: '1',
-    prontuario: '456789',
-    leitoAtual: '03',
-    leitoDestino: 'Pendente (NIR)',
-    dataHora: '2025-11-18 08:30',
-    necessidadesEspeciais: 'Oxigenio portatil',
-  },
-  {
-    id: '2',
-    prontuario: '234567',
-    leitoAtual: '07',
-    leitoDestino: 'Enfermaria 2B - Leito 12',
-    dataHora: '2025-11-18 10:15',
-    necessidadesEspeciais: '',
-  },
-  {
-    id: '3',
-    prontuario: '890123',
-    leitoAtual: '11',
-    leitoDestino: 'Pendente (NIR)',
-    dataHora: '2025-11-18 14:00',
-    necessidadesEspeciais: 'Isolamento de contato',
-  },
-];
+const transfersStore = useTransfersStore();
+const bedsStore = useBedsStore();
+const roleStore = useRoleStore();
+const toast = useToast();
 
-const badgeClasses = {
-  pendente: 'border-amber-300 bg-amber-500/70 text-amber-800',
-  definido: 'border-emerald-300 bg-emerald-500/80 text-emerald-100',
+const form = reactive({
+  patientId: '',
+});
+
+const patientOptions = ref<PatientOption[]>([]);
+const loadingPatients = ref(false);
+const selectedBed: Record<number, string | null> = reactive({});
+
+const patientIdCandidates = ['Prontuário', 'Prontuario', 'PRONTUARIO', 'codigo', 'Código', 'external_id'] as const;
+const specialtyCandidates = ['Especialidade', 'especialidade', 'specialty'] as const;
+const birthDateCandidates = ['Data Nasc.', 'dt_nascimento', 'data_nascimento'] as const;
+
+const normalizeValue = (raw: unknown): string => {
+  if (raw === null || raw === undefined) return '';
+  return String(raw).trim();
 };
+
+const findValue = (row: Record<string, unknown>, keys: readonly string[]): string => {
+  for (const key of keys) {
+    const value = normalizeValue(row[key]);
+    if (value) return value;
+  }
+  return '';
+};
+
+const parseAge = (birthDate: string): number | null => {
+  if (!birthDate) return null;
+  const parts = birthDate.includes('/') ? birthDate.split('/') : birthDate.split('-');
+  if (parts.length !== 3) return null;
+  let day = 1;
+  let month = 1;
+  let year = 1900;
+  if (birthDate.includes('/')) {
+    day = Number(parts[0]);
+    month = Number(parts[1]);
+    year = Number(parts[2]);
+  } else {
+    year = Number(parts[0]);
+    month = Number(parts[1]);
+    day = Number(parts[2]);
+  }
+  if (!year || !month || !day) return null;
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const monthDiff = today.getMonth() + 1 - month;
+  const dayDiff = today.getDate() - day;
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+};
+
+const loadPatientOptions = async () => {
+  loadingPatients.value = true;
+  try {
+    const { data } = await api.get('/api/pacientes');
+    const rows: Array<Record<string, unknown>> = Array.isArray(data) ? data : [];
+    patientOptions.value = rows
+      .map((row) => {
+        const id = findValue(row, patientIdCandidates);
+        if (!id) return null;
+        const specialtyRaw = findValue(row, specialtyCandidates);
+        const specialty = specialtyRaw || 'Nao informado';
+        const birthDate = findValue(row, birthDateCandidates);
+        const age = parseAge(birthDate);
+        return {
+          id,
+          label: `${id}${specialty ? ` - ${specialty}` : ''}`,
+          specialty,
+          specialtyMocked: !specialtyRaw,
+          age: age ?? 0,
+          ageEstimated: age === null,
+        };
+      })
+      .filter((option): option is PatientOption => option !== null);
+  } catch {
+    patientOptions.value = [];
+    toast.error('Não foi possível carregar pacientes.');
+  } finally {
+    loadingPatients.value = false;
+  }
+};
+
+const isIcu = computed(() => roleStore.role === 'ICU');
+const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
+const pendingTransfers = computed(() => transfersStore.pending);
+const visibleTransfers = computed(() => transfersStore.visibleTransfers);
+const selectedPatient = computed(() => patientOptions.value.find((item) => item.id === form.patientId) || null);
+
+const reload = async () => {
+  await transfersStore.load();
+  if (isIcu.value) {
+    await bedsStore.load();
+  } else {
+    bedsStore.reset();
+  }
+};
+
+onMounted(async () => {
+  await Promise.all([reload(), loadPatientOptions()]);
+});
+
+watch(
+  () => roleStore.role,
+  async () => {
+    await reload();
+  }
+);
+
+const statusClass = (status: string) => {
+  switch (status) {
+    case 'PENDENTE':
+      return 'border-orange-200 bg-orange-50 text-orange-700';
+    case 'ACEITA':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    case 'NEGADA':
+      return 'border-rose-200 bg-rose-50 text-rose-700';
+    case 'CANCELADA':
+      return 'border-slate-200 bg-slate-100 text-slate-700';
+    default:
+      return 'border-zinc-200 bg-zinc-100 text-zinc-700';
+  }
+};
+
+const handleCreate = async () => {
+  if (!selectedPatient.value) {
+    toast.error('Selecione um paciente.');
+    return;
+  }
+  if (selectedPatient.value.ageEstimated) {
+    toast.info('A idade não veio explicitamente da API e foi estimada a partir da data de nascimento. Se isso não for válido, alinhe o contrato com o backend.');
+  }
+  if (selectedPatient.value.specialtyMocked) {
+    toast.info('A especialidade não veio da API e foi preenchida como "Nao informado".');
+  }
+  try {
+    await transfersStore.create({
+      prontuario_paciente: Number(selectedPatient.value.id),
+      idade_paciente: selectedPatient.value.age,
+      especialidade_paciente: selectedPatient.value.specialty,
+    });
+    form.patientId = '';
+  } catch (error: any) {
+    toast.error(error.response?.data?.detail || error.message || 'Erro ao solicitar transferência.');
+  }
+};
+
+const decide = async (id: number, decision: 'ACCEPT' | 'DENY') => {
+  try {
+    await transfersStore.decide(id, decision, selectedBed[id] || null);
+  } catch (error: any) {
+    toast.error(error.response?.data?.detail || error.message || 'Erro ao decidir transferência.');
+  }
+};
+
+const formatDate = (value: string) => new Date(value).toLocaleString('pt-BR', { hour12: false });
 </script>

@@ -55,7 +55,6 @@ import {
   Bed,
   FileText,
   LogOut,
-  AlertCircle,
   BarChart3,
   History,
   Lock,
@@ -74,24 +73,19 @@ const isActive = (path: string) => route.path === path;
 
 const activeItems = [
   {
-    label: 'Leitos',
+    label: 'Leitos UTI',
     to: '/',
     icon: Bed,
   },
   {
-    label: 'Solicitações de leito',
+    label: 'Reservas',
     to: '/solicitacoes',
     icon: FileText,
   },
   {
-    label: 'Solicitações de alta',
+    label: 'Transferências',
     to: '/altas',
     icon: LogOut,
-  },
-  {
-    label: 'Alertas',
-    to: '/alertas',
-    icon: AlertCircle,
   },
   {
     label: 'Indicadores',
@@ -102,6 +96,11 @@ const activeItems = [
     label: 'Historico',
     to: '/historico',
     icon: History,
+  },
+  {
+    label: 'Teste API',
+    to: '/teste-api',
+    icon: FileText,
   },
 ];
 

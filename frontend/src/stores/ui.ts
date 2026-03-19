@@ -1,12 +1,55 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 export const useUiStore = defineStore('ui', () => {
-  const isLoading = ref(false);
+  const pendingRequests = ref(0);
+  const pendingNavigations = ref(0);
+  const navigationLabel = ref('');
 
-  function setLoading(loading: boolean) {
-    isLoading.value = loading;
+  const isRequestLoading = computed(() => pendingRequests.value > 0);
+  const isRouteLoading = computed(() => pendingNavigations.value > 0);
+  const isLoading = computed(() => isRequestLoading.value || isRouteLoading.value);
+  const loadingMessage = computed(() => {
+    if (isRouteLoading.value) {
+      return navigationLabel.value ? `Abrindo ${navigationLabel.value}` : 'Abrindo pagina';
+    }
+
+    if (isRequestLoading.value) {
+      return 'Atualizando dados';
+    }
+
+    return '';
+  });
+
+  function startRequestLoading() {
+    pendingRequests.value += 1;
   }
 
-  return { isLoading, setLoading };
+  function finishRequestLoading() {
+    pendingRequests.value = Math.max(0, pendingRequests.value - 1);
+  }
+
+  function startNavigation(label?: string) {
+    pendingNavigations.value += 1;
+    navigationLabel.value = label ?? '';
+  }
+
+  function finishNavigation() {
+    pendingNavigations.value = Math.max(0, pendingNavigations.value - 1);
+
+    if (pendingNavigations.value === 0) {
+      navigationLabel.value = '';
+    }
+  }
+
+  return {
+    isLoading,
+    isRequestLoading,
+    isRouteLoading,
+    loadingMessage,
+    startRequestLoading,
+    finishRequestLoading,
+    startNavigation,
+    finishNavigation,
+  };
 });

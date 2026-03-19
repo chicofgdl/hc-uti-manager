@@ -19,23 +19,23 @@ const props = defineProps<{
 const statusConfig: Record<BedStatus, { label: string; className: string }> = {
   disponivel: {
     label: 'Disponivel',
-    className: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+    className: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   },
   ocupado: {
     label: 'Ocupado',
-    className: 'bg-blue-100 text-blue-700 border border-blue-200',
+    className: 'border border-sky-200 bg-sky-50 text-sky-700',
   },
   higienizacao: {
     label: 'Higienizacao',
-    className: 'bg-amber-100 text-amber-700 border border-amber-200',
+    className: 'border border-amber-200 bg-amber-50 text-amber-700',
   },
   desativado: {
     label: 'Desativado',
-    className: 'bg-slate-100 text-slate-600 border border-slate-300',
+    className: 'border border-slate-200 bg-slate-100 text-slate-600',
   },
   alta: {
     label: 'Alta Solicitada',
-    className: 'bg-rose-100 text-rose-700 border border-rose-200',
+    className: 'border border-rose-200 bg-rose-50 text-rose-700',
   },
 };
 

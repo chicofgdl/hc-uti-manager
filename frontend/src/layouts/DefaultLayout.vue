@@ -13,7 +13,6 @@
               <h1 class="text-xl font-semibold text-slate-900">{{ headerTitle }}</h1>
             </div>
             <div class="flex items-center gap-3">
-              <NotificationsPopover />
               <ProfileDropdown v-if="authStore.isAuthenticated" />
               <router-link
                 v-else
@@ -39,7 +38,6 @@ import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import SidebarNav from '../components/SidebarNav.vue';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
-import NotificationsPopover from '../components/NotificationsPopover.vue';
 import { useAuthStore } from '../stores/auth';
 
 const route = useRoute();

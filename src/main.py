@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 import os
@@ -63,6 +64,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS para desenvolvimento local (Vite + backend) e uso do API tester.
+_default_cors_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+_configured_cors_origins = os.getenv("CORS_ALLOW_ORIGINS", ",".join(_default_cors_origins))
+_cors_origins = [origin.strip() for origin in _configured_cors_origins.split(",") if origin.strip()]
+if not _cors_origins:
+    _cors_origins = _default_cors_origins
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Serve o frontend Vue 3 empacotado
 static_dir = "frontend/dist/assets"
 if os.path.isdir(static_dir):
@@ -86,11 +107,18 @@ async def serve_frontend():
     raise HTTPException(status_code=404, detail=f"Frontend index.html not found. Checked paths: {candidates}")
 
 # Placeholder para incluir os roteadores da API
-from routers import paciente, auth, admin, leito
+
+from routers import paciente, auth, admin, leito, care, solicitacao_leito, reservas, transferencia_paciente, notificacao, users
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(leito.router)
+app.include_router(care.router)
+app.include_router(solicitacao_leito.router)
+app.include_router(reservas.router)
+app.include_router(transferencia_paciente.router)
+app.include_router(notificacao.router)
+app.include_router(users.router)
 
 # Exemplo:
 # from .routers import aih, bpa, material

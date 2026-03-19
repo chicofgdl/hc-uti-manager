@@ -21,14 +21,14 @@ const props = defineProps<{
 const variantClass = computed(() => {
   switch (props.variant) {
     case 'secondary':
-      return 'border-transparent bg-slate-100 text-slate-800 hover:bg-slate-200';
+      return 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200';
     case 'destructive':
-      return 'border-transparent bg-red-600 text-white hover:bg-red-700';
+      return 'border-rose-200 bg-rose-100 text-rose-700 hover:bg-rose-200';
     case 'outline':
-      return 'text-slate-800 border-slate-200';
+      return 'border-slate-200 bg-white text-slate-700';
     case 'default':
     default:
-      return 'border-transparent bg-blue-600 text-white hover:bg-blue-700';
+      return 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100';
   }
 });
 </script>

@@ -48,3 +48,46 @@ Para entender a fundo os conceitos e padroes utilizados neste framework, consult
 
 - **[Arquitetura do Projeto (ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**
 - **[Sistema de Autenticacao (AUTHENTICATION.md)](./docs/AUTHENTICATION.md)**
+
+## Fluxos de UTI/Centro Cirúrgico implementados
+
+- Modelagem persistida para leitos, reservas, transferências, pacientes e notificações com enums de status.
+- Endpoints REST principais:
+  - Leitos (UTI): `GET /api/icu/beds`, `PATCH /api/icu/beds/{id}/availability`, `GET /api/icu/beds/available-count`
+  - Reservas (Centro Cirúrgico → UTI): `POST /api/surgical-center/reservations`, `PATCH /api/icu/reservations/{id}/decision`, `PATCH /api/*/reservations/{id}/cancel`
+  - Transferências (Centro Cirúrgico → UTI): `POST /api/surgical-center/transfers`, `PATCH /api/icu/transfers/{id}/decision`
+  - Notificações: `GET /api/notifications?role=ICU|SURGICAL_CENTER`, `PATCH /api/notifications/{id}/read`, `PATCH /api/notifications/read-all`
+- Regras de negócio aplicadas: disponibilidade só em leito livre, impedimento de duplo agendamento, liberação de leito ao cancelar, aceitação de transferência ocupa leito e sinaliza paciente na UTI.
+- Frontend Vue 3 integrado (Pinia + Axios) com:
+  - Gestão de leitos (toggle de disponibilidade),
+  - Reservas (solicitar, aceitar/negar, cancelar),
+  - Transferências (solicitar, aceitar/negar),
+  - Notificações em tempo quase real via polling (10s) e badge global.
+
+## Contas locais de teste
+
+Com `AD_URL` e `AD_BASEDN` comentados no `.env`, o backend usa o `MockAuthProvider`. Nesse modo:
+
+- `admin / admin`: autenticacao e rotas administrativas.
+- `uti / uti`: fluxos e permissoes da UTI.
+- `cirurgia / cirurgia`: fluxos e permissoes do centro cirurgico.
+
+As permissões do frontend passam a seguir automaticamente os grupos da conta autenticada.
+
+## Rodando localmente (resumo)
+
+```bash
+# Backend
+pip install -r requirements.txt
+alembic upgrade head           # cria/atualiza schema
+python -m src.seed             # popula leitos/pacientes de exemplo
+uvicorn src.main:app --reload
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Testes
+pytest
+```

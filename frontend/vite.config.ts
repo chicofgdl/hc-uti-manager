@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
@@ -24,7 +26,31 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/leitos': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/solicitacoes-reserva': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/reservas': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/transferencias': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/notificacoes': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
+      '/users': {
+        target: apiProxyTarget,
         changeOrigin: true,
       },
     }

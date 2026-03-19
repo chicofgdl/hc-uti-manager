@@ -2,6 +2,7 @@ import os
 import jwt
 import re
 import secrets
+import logging
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from fastapi import Depends, HTTPException, status
@@ -21,7 +22,9 @@ load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_EXP_HOURS = int(os.getenv("JWT_EXP_HOURS", 24))
 REFRESH_TOKEN_EXP_DAYS = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 30))
-AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() == "true"  # ← Adicione
+# Por padrão desabilitamos a autenticação para facilitar testes locais.
+# Para habilitar, defina AUTH_ENABLED=true no seu arquivo .env ou variáveis de ambiente.
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() == "true"
 
 # Torna o scheme opcional se AUTH_ENABLED=false
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=AUTH_ENABLED)  # ← Modifique
@@ -31,22 +34,41 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=AUTH_ENAB
 class AuthProviderInterface(ABC):
     """Interface para provedores de autenticação."""
     @abstractmethod
-    def authenticate_user(self, username, password) -> dict:
+    async def authenticate_user(self, username, password) -> dict:
         pass
 
 class MockAuthProvider(AuthProviderInterface):
     """Provedor de autenticação mock para desenvolvimento offline."""
-    def authenticate_user(self, username, password) -> dict:
+    
+    MOCK_USERS = {
+        "admin": {
+            "password": "admin",
+            "displayName": ["Mock Admin"],
+            "groups": ["GLO-SEC-HCPE-SETISD", "Users"],
+            "email": "admin@mock.com"
+        },
+        "uti": {
+            "password": "uti",
+            "displayName": ["Enfermeiro UTI"],
+            "groups": ["enfermeiro_uti"],
+            "email": "uti@mock.com"
+        },
+        "cirurgia": {
+            "password": "cirurgia",
+            "displayName": ["Enfermeiro Cirurgia"],
+            "groups": ["enfermeiro_cirurgia"],
+            "email": "cirurgia@mock.com"
+        }
+    }
+    
+    async def authenticate_user(self, username, password) -> dict:
         print("--- Using Mock Authentication ---")
-        if username == "admin" and password == "admin":
+        user_data = self.MOCK_USERS.get(username)
+        if user_data and user_data["password"] == password:
             print(f"Authentication successful for mock user: {username}")
-            # O nome do grupo que o frontend usa para identificar administradores
-            admin_group = "GLO-SEC-HCPE-SETISD"
             return {
-                "username": "admin",
-                "displayName": ["Mock Admin"],
-                "groups": [admin_group, "Users"],
-                "email": "admin@mock.com"
+                "username": username,
+                **user_data
             }
         else:
             print(f"Authentication failed for mock user: {username}")
@@ -75,7 +97,28 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
             receive_timeout=10,
         )
 
-    def authenticate_user(self, username, password) -> dict:
+    def _extract_user_info(self, entry, username) -> dict:
+        attrs = entry.entry_attributes_as_dict
+        user_info = {"username": username}
+
+        groups_attr = attrs.get("memberOf") or []
+        user_info["groups"] = [
+            re.match(r"CN=([^,]+)", group).group(1)
+            for group in groups_attr
+            if re.match(r"CN=([^,]+)", group)
+        ]
+
+        for key, value in attrs.items():
+            if key == "memberOf":
+                continue
+            if isinstance(value, list):
+                user_info[key] = [str(v) for v in value]
+            else:
+                user_info[key] = str(value)
+
+        return user_info
+
+    async def authenticate_user(self, username, password) -> dict:
         print(f"--- Starting AD Authentication for user: {username} ---")
         user_conn = None
         search_conn = None
@@ -100,23 +143,7 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
             entry = search_conn.entries[0]
-            attrs = entry.entry_attributes_as_dict
-            user_info = {"username": username}
-
-            groups_attr = attrs.get("memberOf") or []
-            user_info["groups"] = [
-                re.match(r"CN=([^,]+)", group).group(1)
-                for group in groups_attr
-                if re.match(r"CN=([^,]+)", group)
-            ]
-
-            for key, value in attrs.items():
-                if key == "memberOf":
-                    continue
-                if isinstance(value, list):
-                    user_info[key] = [str(v) for v in value]
-                else:
-                    user_info[key] = str(value)
+            user_info = self._extract_user_info(entry, username)
 
             print(f"--- AD Authentication successful for user: {username}. ---")
             return user_info
@@ -133,23 +160,68 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
             if user_conn and user_conn.bound:
                 user_conn.unbind()
 
+class LocalAuthProvider(AuthProviderInterface):
+    """Provedor de autenticação usando tabela local de usuários."""
+    
+    def __init__(self, session):
+        self.session = session
+    
+    async def authenticate_user(self, username, password) -> dict:
+        from providers.implementations.banco.user_postgres_provider import UserProvider
+        provider = UserProvider(self.session)
+        user = await provider.authenticate_user(username, password)
+        if user:
+            return user
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid local credentials")
+
 # --- AuthHandler Principal ---
 
 class AuthHandler:
     def __init__(self):
         # Lógica de troca: decide qual provedor usar na inicialização
+        self.providers = []
         if os.getenv("AD_URL"):
             print("INFO: Using Active Directory authentication.")
-            self.provider: AuthProviderInterface = ActiveDirectoryAuthProvider()
+            self.providers.append(ActiveDirectoryAuthProvider())
         else:
             print("WARNING: AD environment variables not found. Using Mock authentication.")
-            self.provider: AuthProviderInterface = MockAuthProvider()
+            self.providers.append(MockAuthProvider())
+        
+        # Always add local provider as fallback
+        # But need session, so perhaps in authenticate_user
+        self.local_provider = None
 
-    def authenticate_user(self, username, password):
-        return self.provider.authenticate_user(username, password)
+    async def authenticate_user(self, username, password, session=None):
+        last_http_error: HTTPException | None = None
+        # Try providers in order
+        for provider in self.providers:
+            try:
+                return await provider.authenticate_user(username, password)
+            except HTTPException as exc:
+                last_http_error = exc
+                continue
+            except Exception:
+                logging.exception("Unexpected error in auth provider %s", type(provider).__name__)
+                continue
+        
+        # Try local users
+        if session:
+            local_provider = LocalAuthProvider(session)
+            try:
+                return await local_provider.authenticate_user(username, password)
+            except HTTPException as exc:
+                last_http_error = exc
+            except Exception:
+                # Avoid leaking DB/internal failures as 500 on login.
+                logging.exception("Unexpected error in local auth provider")
+        
+        if last_http_error and last_http_error.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN):
+            raise last_http_error
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()
+        to_encode.pop("password", None)
         if 'username' in to_encode:
             to_encode['sub'] = to_encode['username']
         expire = datetime.utcnow() + (expires_delta or timedelta(hours=JWT_EXP_HOURS))
@@ -204,6 +276,28 @@ class AuthHandler:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
         except jwt.InvalidTokenError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    def require_role(self, required_role: str):
+        def role_checker(token_data: dict = Depends(self.decode_token)):
+            groups = token_data.get("groups", [])
+            if required_role not in groups:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Insufficient permissions. Required role: {required_role}"
+                )
+            return token_data
+        return role_checker
+
+    def require_any_role(self, required_roles: list[str]):
+        def role_checker(token_data: dict = Depends(self.decode_token)):
+            groups = token_data.get("groups", [])
+            if not any(role in groups for role in required_roles):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Insufficient permissions. Required one of roles: {required_roles}"
+                )
+            return token_data
+        return role_checker
 
 # Instância única que será usada em toda a aplicação
 auth_handler = AuthHandler()

@@ -37,10 +37,28 @@ A escolha entre o provedor `ActiveDirectory` e o `Mock` e feita automaticamente 
 
 Quando o `MockAuthProvider` esta ativo, voce pode se autenticar com as seguintes credenciais:
 
--   **Usuario:** `admin`
--   **Senha:** `admin`
+-   **Administrador**
+    -   Usuario: `admin`
+    -   Senha: `admin`
+    -   Grupos: `GLO-SEC-HCPE-SETISD`, `Users`
+    -   Uso indicado: validar login, `/api/users/me` e rotas administrativas.
 
-Este usuario recebera um conjunto de grupos pre-definidos, incluindo o grupo de administrador (`GLO-SEC-HCPE-SETISD`), permitindo testar todas as funcionalidades restritas do frontend.
+-   **UTI**
+    -   Usuario: `uti`
+    -   Senha: `uti`
+    -   Grupos: `enfermeiro_uti`
+    -   Uso indicado: fluxos de decisao da UTI, leitos, altas, aprovacoes e negacoes.
+
+-   **Centro Cirurgico**
+    -   Usuario: `cirurgia`
+    -   Senha: `cirurgia`
+    -   Grupos: `enfermeiro_cirurgia`
+    -   Uso indicado: criacao de reservas e solicitacoes de transferencia.
+
+Observacoes praticas:
+
+-   Com as variaveis de AD comentadas, essas são as credenciais que devem ser usadas na tela de login.
+-   A conta `admin` é útil para testes de autenticacao e rotas administrativas, mas não substitui as contas `uti` e `cirurgia` para os fluxos assistenciais, porque ela não possui os grupos `enfermeiro_uti` nem `enfermeiro_cirurgia`.
 
 ## Fluxo de Tokens (JWT)
 

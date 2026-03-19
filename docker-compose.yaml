@@ -1,11 +1,13 @@
-version: "3.9"
-
 services:
   backend:
     build:
       context: .
     container_name: hc-uti-backend
     env_file: .env
+    environment:
+      PACIENTE_PROVIDER_TYPE: POSTGRES
+      LEITO_PROVIDER_TYPE: POSTGRES
+      AUTH_ENABLED: "true"
     command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     ports:
       - "8000:8000"
@@ -21,6 +23,8 @@ services:
       target: frontend-dev
     container_name: hc-uti-frontend
     working_dir: /app/frontend
+    environment:
+      - VITE_API_PROXY_TARGET=http://backend:8000
     volumes:
       - ./frontend:/app/frontend
     command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0"]

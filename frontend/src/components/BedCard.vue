@@ -17,7 +17,7 @@
           <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Leito</p>
           <h3 class="text-2xl font-bold text-slate-900">Leito {{ leitoNumero }}</h3>
         </div>
-        <UiBadge :class="['border-transparent text-white', tipoClass]">
+        <UiBadge :class="tipoClass">
           {{ tipoConfig.label }}
         </UiBadge>
       </div>
@@ -107,11 +107,11 @@ defineEmits<{
 }>();
 
 const tipoPalette: Record<BedType, { label: string; className: string }> = {
-  cirurgico: { label: 'Cirúrgico', className: 'bg-blue-600/80' },
-  hem: { label: 'HEM', className: 'bg-rose-600/80' },
-  obstetrico: { label: 'Obstétrico', className: 'bg-purple-600/80' },
-  outro: { label: 'Outro', className: 'bg-slate-700/80' },
-  nao_definido: { label: 'Não definido', className: 'bg-slate-400/90' },
+  cirurgico: { label: 'Cirúrgico', className: 'border border-sky-200 bg-sky-50 text-sky-700' },
+  hem: { label: 'HEM', className: 'border border-rose-200 bg-rose-50 text-rose-700' },
+  obstetrico: { label: 'Obstétrico', className: 'border border-violet-200 bg-violet-50 text-violet-700' },
+  outro: { label: 'Outro', className: 'border border-slate-200 bg-slate-100 text-slate-700' },
+  nao_definido: { label: 'Não definido', className: 'border border-zinc-200 bg-zinc-100 text-zinc-700' },
 };
 
 const tipoConfig = computed(() => tipoPalette[props.tipo]);

@@ -1,3 +1,4 @@
+<!-- Fora do contrato atual do YAML. Componente mantido apenas como referencia, sem uso ativo na navegacao. -->
 <template>
   <div class="relative" ref="container">
     <button
@@ -23,15 +24,21 @@
       >
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h3 class="font-semibold text-slate-900">Notificacoes</h3>
-          <span class="text-xs text-slate-500">{{ unreadCount }} nao lidas</span>
+          <button
+            class="text-xs font-semibold text-blue-600 hover:underline"
+            @click="handleMarkAll"
+          >
+            Marcar todas como lidas
+          </button>
         </div>
 
         <div class="max-h-96 overflow-auto p-2">
           <div
-            v-for="notification in notifications"
+            v-for="notification in notificationsStore.notifications"
             :key="notification.id"
             class="rounded-lg p-3 transition hover:bg-slate-50"
-            :class="notification.unread ? 'bg-blue-50/40' : ''"
+            :class="!notification.read ? 'bg-sky-50' : ''"
+            @click="markAsRead(notification.id)"
           >
             <div class="flex gap-3">
               <div
@@ -42,21 +49,26 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-start justify-between gap-2">
-                  <p class="text-sm font-semibold text-slate-900 leading-tight">{{ notification.title }}</p>
+                  <p class="text-sm font-semibold text-slate-900 leading-tight">
+                    {{ typeConfig[notification.type].title }}
+                  </p>
                   <span
-                    v-if="notification.unread"
-                    class="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-blue-500"
+                    v-if="!notification.read"
+                    class="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-sky-500"
                     aria-label="Nao lida"
                   />
                 </div>
-                <p class="mt-1 text-xs text-slate-600 wrap-break-words">{{ notification.description }}</p>
+                <p class="mt-1 text-xs text-slate-600 wrap-break-words">{{ notification.message }}</p>
                 <div class="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
                   <Clock3 class="h-3 w-3" />
-                  <span>{{ notification.time }}</span>
+                  <span>{{ formatDate(notification.created_at) }}</span>
                 </div>
               </div>
             </div>
           </div>
+          <p v-if="notificationsStore.notifications.length === 0" class="px-3 py-2 text-sm text-slate-500">
+            Nenhuma notificação.
+          </p>
         </div>
 
         <div class="border-t border-slate-100 p-3">
@@ -74,53 +86,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  AlertTriangle,
   Bell,
   Clock3,
+  FileText,
   LogOut,
   UserPlus,
+  ArrowRightLeft,
 } from 'lucide-vue-next';
+import { useNotificationsStore } from '../stores/notifications';
+import { useRoleStore } from '../stores/role';
 
-type NotificationType = 'alert' | 'admission' | 'discharge';
-
-type NotificationItem = {
-  id: number;
-  type: NotificationType;
-  title: string;
-  description: string;
-  time: string;
-  unread: boolean;
-};
-
-const notifications = ref<NotificationItem[]>([
-  {
-    id: 1,
-    type: 'alert',
-    title: 'Paciente em estado critico',
-    description: 'Leito 5 - Joao Santos (Prontuario 12345)',
-    time: '5 min atras',
-    unread: true,
-  },
-  {
-    id: 2,
-    type: 'admission',
-    title: 'Nova solicitacao de vaga',
-    description: 'Paciente: Maria Silva - Especialidade: HEM',
-    time: '15 min atras',
-    unread: true,
-  },
-  {
-    id: 3,
-    type: 'discharge',
-    title: 'Solicitacao de alta aprovada',
-    description: 'Leito 8 - Pedro Costa (Prontuario 67890)',
-    time: '1 hora atras',
-    unread: true,
-  },
-]);
+type NotificationType =
+  | 'RESERVA_CRIADA'
+  | 'RESERVA_ATUALIZADA'
+  | 'TRANSFERENCIA_CRIADA'
+  | 'TRANSFERENCIA_ATUALIZADA';
 
 const typeConfig: Record<
   NotificationType,
@@ -128,31 +111,44 @@ const typeConfig: Record<
     icon: any;
     bg: string;
     color: string;
+    title: string;
   }
 > = {
-  alert: {
-    icon: AlertTriangle,
-    bg: 'bg-red-50',
-    color: 'text-red-600',
-  },
-  admission: {
+  RESERVA_CRIADA: {
     icon: UserPlus,
-    bg: 'bg-emerald-50',
-    color: 'text-emerald-600',
+    bg: 'bg-emerald-100',
+    color: 'text-emerald-700',
+    title: 'Reserva criada',
   },
-  discharge: {
+  RESERVA_ATUALIZADA: {
+    icon: FileText,
+    bg: 'bg-sky-100',
+    color: 'text-sky-700',
+    title: 'Reserva atualizada',
+  },
+  TRANSFERENCIA_CRIADA: {
+    icon: ArrowRightLeft,
+    bg: 'bg-amber-100',
+    color: 'text-amber-700',
+    title: 'Transferencia solicitada',
+  },
+  TRANSFERENCIA_ATUALIZADA: {
     icon: LogOut,
-    bg: 'bg-blue-50',
-    color: 'text-blue-600',
+    bg: 'bg-violet-100',
+    color: 'text-violet-700',
+    title: 'Transferencia atualizada',
   },
 };
+
+const notificationsStore = useNotificationsStore();
+const roleStore = useRoleStore();
 
 const open = ref(false);
 const trigger = ref<HTMLElement | null>(null);
 const panel = ref<HTMLElement | null>(null);
 const router = useRouter();
 
-const unreadCount = computed(() => notifications.value.filter(n => n.unread).length);
+const unreadCount = computed(() => notificationsStore.unreadCount);
 
 const toggle = () => {
   open.value = !open.value;
@@ -160,6 +156,14 @@ const toggle = () => {
 
 const close = () => {
   open.value = false;
+};
+
+const markAsRead = async (id: number) => {
+  await notificationsStore.markRead(id);
+};
+
+const handleMarkAll = async () => {
+  await notificationsStore.markAll(roleStore.role);
 };
 
 const goToAlerts = () => {
@@ -179,13 +183,26 @@ const handleClickOutside = (event: MouseEvent) => {
   close();
 };
 
+const formatDate = (value: string) => {
+  return new Date(value).toLocaleString('pt-BR', { hour12: false });
+};
+
 onMounted(() => {
+  notificationsStore.startPolling(roleStore.role);
   document.addEventListener('click', handleClickOutside);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
+  notificationsStore.stopPolling();
 });
+
+watch(
+  () => roleStore.role,
+  (role) => {
+    notificationsStore.startPolling(role);
+  }
+);
 </script>
 
 <style scoped>

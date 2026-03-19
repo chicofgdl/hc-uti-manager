@@ -2,9 +2,8 @@
   <Card>
     <div v-if="authStore.isAdmin">
       <h1 class="text-2xl font-bold text-green-600">Admin Area</h1>
-      <p class="mt-4">Welcome, administrator! This content is only visible to users with admin privileges.</p>
       <div v-if="authStore.user" class="mt-6 p-4 bg-gray-100 rounded">
-        <h3 class="font-bold">User Information (from AD):</h3>
+        <h3 class="font-bold">User Information</h3>
         <pre class="text-sm whitespace-pre-wrap">{{ JSON.stringify(authStore.user, null, 2) }}</pre>
       </div>
     </div>

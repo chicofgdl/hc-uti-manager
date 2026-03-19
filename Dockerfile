@@ -74,8 +74,8 @@ COPY requirements.txt .
 # Instalando libs Python no runtime
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiando o build do frontend para dentro da pasta estática
-COPY --from=frontend-build /app/src/static/dist ./src/static/dist
+# Copiando o build do frontend para dentro da pasta estática do backend
+COPY --from=frontend-build /app/frontend/dist ./src/static/dist
 
 EXPOSE 8000
 
