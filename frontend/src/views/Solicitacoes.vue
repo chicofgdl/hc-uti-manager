@@ -4,11 +4,11 @@
       <div class="space-y-1">
         <h2 class="text-3xl font-bold text-slate-900">Reservas de Leito</h2>
         <p class="text-sm text-slate-600">
-          Esta tela foi adaptada ao contrato atual do YAML usando `/solicitacoes-reserva`.
+          Esta tela usa as rotas legadas do YAML para busca de paciente, disponibilidade de leitos e solicitação de reserva.
         </p>
         <p class="text-sm text-amber-700">{{ profileHint }}</p>
         <p v-if="isCc" class="text-xs text-slate-500">
-          O YAML não expõe listagem de reservas para o Centro Cirúrgico. As solicitações criadas nesta sessão aparecem localmente abaixo.
+          O YAML não expõe listagem de solicitações do Centro Cirúrgico. As solicitações criadas nesta sessão aparecem localmente abaixo, agora com o `id` real devolvido pelo backend.
         </p>
       </div>
       <UiButton variant="outline" size="sm" @click="reload">Atualizar</UiButton>
@@ -20,33 +20,45 @@
           <h3 class="mb-2 text-lg font-semibold text-slate-900">Criar solicitação</h3>
           <form class="space-y-3" @submit.prevent="handleCreate">
             <label class="block text-sm font-medium text-slate-700">
-              Paciente
-              <select
-                v-model="form.patientId"
-                required
+              Buscar paciente
+              <input
+                v-model="form.patientQuery"
+                type="text"
+                placeholder="Digite código, nome ou outro dado disponível"
                 class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              >
-                <option value="" disabled>
-                  {{ loadingPatients ? 'Carregando pacientes...' : 'Selecione um paciente' }}
-                </option>
-                <option
-                  v-for="patient in patientOptions"
-                  :key="patient.id"
-                  :value="patient.id"
-                >
-                  {{ patient.label }}
-                </option>
-              </select>
+              />
             </label>
+            <div class="max-h-56 overflow-auto rounded-lg border border-slate-200">
+              <button
+                v-for="patient in filteredPatients"
+                :key="patient.id"
+                type="button"
+                class="flex w-full flex-col items-start gap-1 border-b border-slate-100 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-slate-50"
+                :class="selectedPatient?.id === patient.id ? 'bg-blue-50' : ''"
+                @click="selectPatient(patient)"
+              >
+                <span class="font-semibold text-slate-900">{{ patient.label }}</span>
+                <span class="text-xs text-slate-500">
+                  Prontuário {{ patient.id }} | Especialidade {{ patient.specialty }} | Idade {{ patient.age }}
+                  <span v-if="patient.ageEstimated"> (estimada)</span>
+                </span>
+              </button>
+              <div v-if="loadingPatients" class="px-3 py-4 text-sm text-slate-500">
+                Carregando pacientes...
+              </div>
+              <div v-else-if="filteredPatients.length === 0" class="px-3 py-4 text-sm text-slate-500">
+                Nenhum paciente encontrado para o filtro informado.
+              </div>
+            </div>
             <p v-if="selectedPatient" class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
               Prontuário {{ selectedPatient.id }} | Especialidade {{ selectedPatient.specialty }} | Idade enviada {{ selectedPatient.age }}
               <span v-if="selectedPatient.ageEstimated"> (estimada)</span>
               <span v-if="selectedPatient.specialtyMocked"> | Especialidade preenchida como "Não informado"</span>
             </p>
-            <p v-if="!loadingPatients && patientOptions.length === 0" class="text-xs text-amber-700">
-              Nenhum paciente disponível para seleção.
+            <p v-else class="text-xs text-slate-500">
+              Digite para filtrar a lista e clique em um paciente para selecioná-lo.
             </p>
-            <UiButton type="submit" class="w-full" :disabled="!form.patientId">
+            <UiButton type="submit" class="w-full" :disabled="!selectedPatient">
               Enviar solicitação
             </UiButton>
           </form>
@@ -57,6 +69,33 @@
       </div>
 
       <div class="space-y-6 lg:col-span-2">
+        <div v-if="isCc" class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 px-4 py-3">
+            <h3 class="text-lg font-semibold text-slate-900">Leitos disponíveis para reserva</h3>
+          </div>
+          <div class="grid grid-cols-1 gap-4 border-b border-slate-100 px-4 py-4 md:grid-cols-2">
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <p class="text-sm font-medium text-slate-600">Quantidade via `/leitos/quantidade-disponiveis`</p>
+              <p class="mt-1 text-3xl font-bold text-emerald-700">{{ bedsStore.reservableCount }}</p>
+            </div>
+          </div>
+          <div v-if="bedsStore.reservableBeds.length === 0" class="px-4 py-6 text-sm text-slate-500">
+            Nenhum leito disponível para reserva no momento.
+          </div>
+          <div v-else class="divide-y divide-slate-100">
+            <div v-for="bed in bedsStore.reservableBeds" :key="bed.id" class="flex flex-wrap items-center gap-3 px-4 py-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-slate-900">Leito {{ bed.code }}</p>
+                <p class="text-xs text-slate-500">
+                  Ocupação atual: {{ bed.occupancy_status === 'OCUPADO' ? 'Ocupado' : 'Livre' }}
+                  <span v-if="bed.current_patient_id" class="ml-2">Paciente atual {{ bed.current_patient_id }}</span>
+                </p>
+              </div>
+              <UiBadge class="border-teal-200 bg-teal-50 text-teal-700">Disponível para reserva</UiBadge>
+            </div>
+          </div>
+        </div>
+
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="border-b border-slate-100 px-4 py-3">
             <h3 class="text-lg font-semibold text-slate-900">Pendentes para decisão da UTI</h3>
@@ -145,6 +184,7 @@ import api from '../services/api';
 type PatientOption = {
   id: string;
   label: string;
+  searchText: string;
   specialty: string;
   specialtyMocked: boolean;
   age: number;
@@ -157,14 +197,16 @@ const roleStore = useRoleStore();
 const toast = useToast();
 
 const form = reactive({
-  patientId: '',
+  patientQuery: '',
 });
 
+const selectedPatient = ref<PatientOption | null>(null);
 const patientOptions = ref<PatientOption[]>([]);
 const loadingPatients = ref(false);
 const selectedBed: Record<number, string | null> = reactive({});
 
 const patientIdCandidates = ['Prontuário', 'Prontuario', 'PRONTUARIO', 'codigo', 'Código', 'external_id'] as const;
+const patientNameCandidates = ['Nome', 'nome', 'NM_PESSOA_FISICA', 'paciente', 'name'] as const;
 const specialtyCandidates = ['Especialidade', 'especialidade', 'specialty'] as const;
 const birthDateCandidates = ['Data Nasc.', 'dt_nascimento', 'data_nascimento'] as const;
 
@@ -180,6 +222,12 @@ const findValue = (row: Record<string, unknown>, keys: readonly string[]): strin
   }
   return '';
 };
+
+const buildSearchText = (row: Record<string, unknown>) =>
+  Object.values(row)
+    .map((value) => normalizeValue(value).toLowerCase())
+    .filter(Boolean)
+    .join(' ');
 
 const parseAge = (birthDate: string): number | null => {
   if (!birthDate) return null;
@@ -217,13 +265,15 @@ const loadPatientOptions = async () => {
       .map((row) => {
         const id = findValue(row, patientIdCandidates);
         if (!id) return null;
+        const name = findValue(row, patientNameCandidates);
         const specialtyRaw = findValue(row, specialtyCandidates);
         const specialty = specialtyRaw || 'Nao informado';
         const birthDate = findValue(row, birthDateCandidates);
         const age = parseAge(birthDate);
         return {
           id,
-          label: `${id}${specialty ? ` - ${specialty}` : ''}`,
+          label: name ? `${id} - ${name}` : id,
+          searchText: buildSearchText(row),
           specialty,
           specialtyMocked: !specialtyRaw,
           age: age ?? 0,
@@ -239,22 +289,33 @@ const loadPatientOptions = async () => {
   }
 };
 
+const filteredPatients = computed(() => {
+  const query = form.patientQuery.trim().toLowerCase();
+  if (!query) return patientOptions.value;
+  return patientOptions.value.filter((patient) => patient.searchText.includes(query));
+});
+
+const selectPatient = (patient: PatientOption) => {
+  selectedPatient.value = patient;
+};
+
 const isIcu = computed(() => roleStore.role === 'ICU');
 const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
 const pendingReservations = computed(() => reservationsStore.pending);
 const visibleReservations = computed(() => reservationsStore.visibleReservations);
-const selectedPatient = computed(() => patientOptions.value.find((item) => item.id === form.patientId) || null);
 const profileHint = computed(() => (
   isCc.value
-    ? 'Conta de cirurgia: pode criar e cancelar solicitações.'
+    ? 'Conta de cirurgia: consulta disponibilidade, cria e cancela solicitações.'
     : 'Conta UTI: pode listar, aprovar, negar e cancelar solicitações.'
 ));
 
 const reload = async () => {
-  await reservationsStore.load();
   if (isIcu.value) {
-    await bedsStore.load();
+    await Promise.all([reservationsStore.load(), bedsStore.load()]);
+  } else if (isCc.value) {
+    await Promise.all([reservationsStore.load(), bedsStore.loadReservable()]);
   } else {
+    await reservationsStore.load();
     bedsStore.reset();
   }
 };
@@ -267,6 +328,9 @@ watch(
   () => roleStore.role,
   async () => {
     await reload();
+    if (isCc.value && patientOptions.value.length === 0) {
+      await loadPatientOptions();
+    }
   }
 );
 
@@ -302,7 +366,8 @@ const handleCreate = async () => {
       idade: selectedPatient.value.age,
       especialidade: selectedPatient.value.specialty,
     });
-    form.patientId = '';
+    form.patientQuery = '';
+    selectedPatient.value = null;
   } catch (error: any) {
     toast.error(error.response?.data?.detail || error.message || 'Erro ao criar solicitação.');
   }

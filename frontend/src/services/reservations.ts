@@ -62,8 +62,11 @@ export async function listPendingReservations(): Promise<Reservation[]> {
     : [];
 }
 
-export async function createReservation(payload: { prontuario: string; idade: number; especialidade: string }): Promise<void> {
-  await api.post('/solicitacoes-reserva', payload);
+export async function createReservation(
+  payload: { prontuario: string; idade: number; especialidade: string }
+): Promise<{ id?: number; message?: string }> {
+  const { data } = await api.post('/solicitacoes-reserva', payload);
+  return data;
 }
 
 export async function approveReservation(reservationId: number, ltoLtoId: string): Promise<void> {
@@ -80,10 +83,13 @@ export async function cancelReservation(reservationId: number, motivo?: string):
   await api.post(`/solicitacoes-reserva/${reservationId}/cancelar`, motivo ? { motivo } : {});
 }
 
-export function buildLocalReservation(payload: { prontuario: string; idade: number; especialidade: string }): Reservation {
+export function buildLocalReservation(
+  payload: { prontuario: string; idade: number; especialidade: string },
+  id: number
+): Reservation {
   return toReservation(
     {
-      id: Date.now(),
+      id,
       status: 'PENDENTE',
       prontuario_paciente: Number(payload.prontuario),
       idade_paciente: payload.idade,

@@ -16,7 +16,7 @@ const toBed = (item: LegacyBed): Bed => {
   return {
     id: String(item.lto_lto_id),
     code: String(item.lto_lto_id),
-    availability_status: item.alta_solicitada && !hasNextPatient ? 'DISPONIVEL' : 'NAO_DISPONIVEL',
+    availability_status: item.alta_solicitada ? 'DISPONIVEL' : 'NAO_DISPONIVEL',
     occupancy_status: hasCurrentPatient ? 'OCUPADO' : 'LIVRE',
     legacy_status: item.status ?? null,
     alta_solicitada: Boolean(item.alta_solicitada),
@@ -32,8 +32,20 @@ export async function fetchBeds(): Promise<Bed[]> {
   return Array.isArray(data) ? data.map((item) => toBed(item as LegacyBed)) : [];
 }
 
-export async function updateAvailability(_bedId: string, _available: boolean): Promise<Bed> {
-  throw new Error(
-    'O contrato atual do YAML nao possui endpoint para alterar disponibilidade de leito. O backend precisa expor essa operacao antes de reativarmos este botao.'
-  );
+export async function fetchReservableBeds(): Promise<Bed[]> {
+  const { data } = await api.get('/leitos/disponiveis-para-reserva');
+  return Array.isArray(data) ? data.map((item) => toBed(item as LegacyBed)) : [];
+}
+
+export async function fetchReservableBedsCount(): Promise<number> {
+  const { data } = await api.get('/leitos/quantidade-disponiveis');
+  return Number(data?.quantidade_leitos_disponiveis || 0);
+}
+
+export async function updateAvailability(bedId: string, available: boolean): Promise<void> {
+  if (available) {
+    await api.post(`/leitos/${encodeURIComponent(bedId)}/alta`);
+    return;
+  }
+  await api.delete(`/leitos/${encodeURIComponent(bedId)}/alta`);
 }

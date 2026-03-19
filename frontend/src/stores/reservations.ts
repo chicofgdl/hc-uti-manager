@@ -54,7 +54,8 @@ export const useReservationsStore = defineStore('reservations', () => {
 
   async function create(payload: { prontuario: string; idade: number; especialidade: string }) {
     const res = await createReservation(payload);
-    localCreated.value = [buildLocalReservation(payload), ...localCreated.value];
+    const createdId = Number(res?.id || Date.now());
+    localCreated.value = [buildLocalReservation(payload, createdId), ...localCreated.value];
     toast.success('Solicitação de reserva enviada.');
     await syncAfterMutation();
     return res;

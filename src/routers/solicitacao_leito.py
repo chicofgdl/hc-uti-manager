@@ -30,12 +30,12 @@ async def criar_solicitacao(
                 detail="Campos obrigatórios: prontuario, idade, especialidade"
             )
 
-        await controller.criar({
+        created_id = await controller.criar({
             "prontuario": prontuario,
             "idade": idade,
             "especialidade": especialidade,
         })
-        return {"message": "Solicitação criada com sucesso"}
+        return {"message": "Solicitação criada com sucesso", "id": created_id}
     except HTTPException:
         raise
     except Exception as e:

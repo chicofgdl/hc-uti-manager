@@ -26,5 +26,5 @@ async def criar_reserva(
         "especialidade": especialidade,
     }
 
-    await controller.criar(normalized)
-    return {"message": "Reserva criada com sucesso"}
+    created_id = await controller.criar(normalized)
+    return {"message": "Reserva criada com sucesso", "id": created_id}

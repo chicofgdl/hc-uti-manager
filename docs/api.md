@@ -206,11 +206,33 @@ Payload de criacao:
 }
 ```
 
+Resposta atual de criacao:
+
+```json
+{
+  "message": "Solicitação criada com sucesso",
+  "id": 8
+}
+```
+
+Observacao:
+
+- O backend passou a devolver o `id` criado para viabilizar o cancelamento posterior da solicitacao pelo Centro Cirurgico.
+
 ### Reservas legadas
 
 | Metodo | URL | Permissao |
 | --- | --- | --- |
 | `POST` | `/reservas` | `enfermeiro_cirurgia` |
+
+Resposta atual de criacao:
+
+```json
+{
+  "message": "Reserva criada com sucesso",
+  "id": 8
+}
+```
 
 ### Transferencias legadas
 

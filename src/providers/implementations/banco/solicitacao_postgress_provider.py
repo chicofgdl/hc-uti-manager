@@ -13,7 +13,7 @@ class SolicitacaoReservaProvider:
         prontuario: int,
         idade: int,
         especialidade: str
-    ) -> None:
+    ) -> int:
         query = text("""
             INSERT INTO solicitacoes_reserva (
                 prontuario_paciente,
@@ -31,14 +31,16 @@ class SolicitacaoReservaProvider:
                 NOW(),
                 NOW()
             )
+            RETURNING id
         """)
 
-        await self.session.execute(query, {
+        result = await self.session.execute(query, {
             "prontuario": prontuario,
             "idade": idade,
             "especialidade": especialidade
         })
         await self.session.commit()
+        return int(result.scalar_one())
 
     async def listar_todas(self) -> list[dict]:
         result = await self.session.execute(text("""
