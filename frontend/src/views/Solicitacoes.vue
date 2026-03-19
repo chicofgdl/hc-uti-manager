@@ -3,13 +3,6 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="space-y-1">
         <h2 class="text-3xl font-bold text-slate-900">Reservas de Leito</h2>
-        <p class="text-sm text-slate-600">
-          Esta tela usa as rotas legadas do YAML para busca de paciente, disponibilidade de leitos e solicitação de reserva.
-        </p>
-        <p class="text-sm text-amber-700">{{ profileHint }}</p>
-        <p v-if="isCc" class="text-xs text-slate-500">
-          O YAML não expõe listagem de solicitações do Centro Cirúrgico. As solicitações criadas nesta sessão aparecem localmente abaixo, agora com o `id` real devolvido pelo backend.
-        </p>
       </div>
       <UiButton variant="outline" size="sm" @click="reload">Atualizar</UiButton>
     </div>
@@ -152,7 +145,6 @@
                   Status:
                   <UiBadge :class="statusClass(res.status)">{{ res.status }}</UiBadge>
                   <span v-if="res.lto_lto_id || res.bed_code" class="ml-2 text-slate-600">Leito {{ res.lto_lto_id || res.bed_code }}</span>
-                  <span v-if="res.source === 'mock-local'" class="ml-2 text-amber-700">Registro local da sessão</span>
                 </p>
               </div>
               <UiButton
@@ -303,11 +295,6 @@ const isIcu = computed(() => roleStore.role === 'ICU');
 const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
 const pendingReservations = computed(() => reservationsStore.pending);
 const visibleReservations = computed(() => reservationsStore.visibleReservations);
-const profileHint = computed(() => (
-  isCc.value
-    ? 'Conta de cirurgia: consulta disponibilidade, cria e cancela solicitações.'
-    : 'Conta UTI: pode listar, aprovar, negar e cancelar solicitações.'
-));
 
 const reload = async () => {
   if (isIcu.value) {

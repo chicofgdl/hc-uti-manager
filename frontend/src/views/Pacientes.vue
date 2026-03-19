@@ -2,9 +2,6 @@
   <div class="space-y-6">
     <div>
       <h1 class="mb-2 text-2xl font-bold">Pacientes</h1>
-      <p class="text-sm text-slate-600">
-        Tela ajustada ao contrato atual de `/api/pacientes`. Os campos exibidos dependem do que a API realmente retorna.
-      </p>
     </div>
 
     <Card>

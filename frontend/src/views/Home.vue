@@ -7,17 +7,6 @@
           Atualizar
         </UiButton>
       </div>
-      <p class="text-sm text-slate-600">
-        <span v-if="isIcu">
-          Esta tela usa `GET /leitos`, `POST /leitos/{leito_id}/alta` e `DELETE /leitos/{leito_id}/alta` para a UTI visualizar ocupação e liberar ou bloquear leitos para reserva.
-        </span>
-        <span v-else>
-          Para a cirurgia, esta tela mostra apenas os leitos liberados para reserva via `GET /leitos/disponiveis-para-reserva`.
-        </span>
-      </p>
-      <p v-if="!isIcu" class="text-sm text-amber-700">
-        A conta atual não possui permissão UTI. Esta tela fica em modo consulta dos leitos liberados.
-      </p>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <p class="text-sm font-medium text-slate-600">Total de leitos</p>
@@ -41,16 +30,13 @@
     <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <h3 class="text-lg font-semibold text-slate-900">Situação dos leitos</h3>
-        <span class="text-sm text-slate-500">
-          {{ isIcu ? 'UTI vê todos os leitos e controla a disponibilidade para reserva' : 'Cirurgia vê apenas os leitos já liberados para reserva' }}
-        </span>
       </div>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
             <tr>
               <th class="px-4 py-3">Leito</th>
-              <th class="px-4 py-3">Status legado</th>
+              <th class="px-4 py-3">Status</th>
               <th class="px-4 py-3">Disponibilidade para reserva</th>
               <th class="px-4 py-3">Ocupação</th>
               <th class="px-4 py-3">Paciente atual</th>
@@ -91,11 +77,8 @@
                   >
                     {{ bed.availability_status === 'DISPONIVEL' ? 'Bloquear reserva' : 'Liberar para reserva' }}
                   </UiButton>
-                  <span v-if="bed.next_patient_id" class="text-xs text-amber-700">
-                    Este leito já possui próximo paciente. Bloquear a reserva remove essa disponibilidade.
-                  </span>
                 </div>
-                <span v-else class="text-xs text-slate-500">Apenas a UTI pode alterar esta disponibilidade.</span>
+                <span v-else class="text-xs text-slate-500">-</span>
               </td>
             </tr>
           </tbody>

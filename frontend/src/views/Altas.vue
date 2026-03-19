@@ -3,13 +3,6 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="space-y-1">
         <h2 class="text-3xl font-bold text-slate-900">Transferências Centro Cirúrgico → UTI</h2>
-        <p class="text-sm text-slate-600">
-          Esta tela foi adaptada ao contrato atual do YAML usando `/transferencias`.
-        </p>
-        <p class="text-sm text-amber-700">{{ profileHint }}</p>
-        <p v-if="isCc" class="text-xs text-slate-500">
-          O YAML não expõe listagem de transferências para o Centro Cirúrgico. As solicitações criadas nesta sessão aparecem localmente abaixo.
-        </p>
       </div>
       <UiButton variant="outline" size="sm" @click="reload">Atualizar</UiButton>
     </div>
@@ -107,7 +100,6 @@
                   Status:
                   <UiBadge :class="statusClass(tr.status)">{{ tr.status }}</UiBadge>
                   <span v-if="tr.bed_code" class="ml-2 text-slate-600">Leito {{ tr.bed_code }}</span>
-                  <span v-if="tr.source === 'mock-local'" class="ml-2 text-amber-700">Registro local da sessão</span>
                 </p>
               </div>
             </div>
@@ -230,11 +222,6 @@ const isCc = computed(() => roleStore.role === 'SURGICAL_CENTER');
 const pendingTransfers = computed(() => transfersStore.pending);
 const visibleTransfers = computed(() => transfersStore.visibleTransfers);
 const selectedPatient = computed(() => patientOptions.value.find((item) => item.id === form.patientId) || null);
-const profileHint = computed(() => (
-  isCc.value
-    ? 'Conta de cirurgia: pode criar transferências.'
-    : 'Conta UTI: pode listar, aceitar e negar transferências.'
-));
 
 const reload = async () => {
   await transfersStore.load();
